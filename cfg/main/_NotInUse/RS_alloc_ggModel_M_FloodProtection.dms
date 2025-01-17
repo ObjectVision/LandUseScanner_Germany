@@ -1,0 +1,190 @@
+// //////////////////////////////////////////////////////////////////////////////////////
+//                                                                                     //
+// This template contains the call to the discrete allocation                          //
+//                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////
+
+container AllocatePeriod_ggModel: IsTemplate = "True"
+{
+	// Begin CaseParameters
+	attribute<ModelType>  orgLanduse(domain_grid);
+
+	attribute<ModelType> ExogenousLand(domain_grid);
+	
+	container Claims: Descr = "Crj: Claims per region per lu-type";
+	
+	parameter<Float32> UrbanDensificationParameter;
+
+	// End CaseParameters
+
+	parameter<Jahr> StartYear: Expr = "Claims/StartYear";
+	parameter<Jahr> FinalYear: Expr = "Claims/FinalYear";
+	parameter<Jahr> PeriodDuration	: Expr = "(FinalYear - StartYear)";
+	
+	container StaticSuitability_M_FloodProtection: Expr = "StaticSuitabilityTempl_M_FloodProtection(domain_grid, Present, UrbanDensificationParameter, StartYear, FinalYear)";
+
+	// begin constants
+	
+	unit<spoint> domain_grid : Expr = "Geography/dla_100m";
+	unit<uint8> ModelType: Expr = "Classifications/LU/ModelType";
+	unit<uint8> AllocType: Expr = "Classifications/LU/AllocType";
+
+	// End constants
+	
+	container DynamicSuitability: Expr = "DynamicSuitabilities(domain_grid, orgLandUse, UrbanDensificationParameter, StartYear, FinalYear)";
+	
+	container TotalSuitabilityMaps: expr = 
+		"for_each_nedv("
+			"AllocType/Name,"
+			"'StaticSuitability_M_FloodProtection/'+AllocType/Name + '* EconomicParameters/CapitalizationFactor[Classifications/LU/AllocType/'+AllocType/Name + '] + DynamicSuitability/'+AllocType/Name,"
+			"domain_grid, units/euro_m2"
+		")";
+			
+	container CaseData : IsHidden = "True"
+	{
+		attribute<String> RegionRefs(AllocType): Expr = "='union_data(AllocType'+AsList(',Claims/'+AllocType/Name+'/RegionUnit/IntrospectiveName', '')+')'";
+		unit<UInt8> UniqueRegionRefs: Expr = "Unique(RegionRefs)";
+		
+		container MinClaimsOrg: Expr = "for_each_nednv(AllocType/Name, 'UInt32(Claims/'+AllocType/Name+'/Min)', Geography/RegionDomains, RegionRefs, UInt32)";
+		container MinClaims: Expr = "MinClaimsOrg"
+		{
+			attribute<UInt32> Urban_Fabric(Geography/RegionDomains/Kreise): 
+				Expr = "UInt32(MinClaimsOrg/Urban_Fabric[Float32] * (1[Float32] - 0.05[Float32] * UrbanDensificationParameter))";
+//				Expr = 
+//					"UInt32("
+//						"Claims/Urban_Fabric_A/Min * (1[Float32] - UrbanDensificationParameter) + "
+//						"Claims/Urban_Fabric_B/Min * UrbanDensificationParameter"
+//					")";
+		}
+		container MaxClaims: Expr = "for_each_nednv(AllocType/Name, 'UInt32(Claims/'+AllocType/Name+'/Max)', Geography/RegionDomains, RegionRefs, UInt32)";
+		
+		unit<uint16> AtomicRegions: expr = "overlay(UniqueRegionRefs/Values, domain_grid, Geography/RegionGrids)";
+		
+		attribute<bool> HasFreeLand (domain_grid): Expr = "Not(IsDefined(ExogenousLand))";
+		parameter<Float32> SuitScalingFactor: [ 100.0 ];
+		container Compacted
+		{
+			unit <uint32> ADomain
+			:	expr      = "Subset(HasFreeLand)"
+			,	label      = "allocation domain"
+			,	DialogType = "Map"
+			,	DialogData = "BaseGrid"
+			{
+				attribute<ADomain> permutation:             Expr = "rnd_permutation(0, ADomain)";
+				attribute<domain_grid>   nr_OrgEntity2:           Expr = "lookup(permutation, nr_OrgEntity)";
+//REMOVE				attribute<domain_grid>   nr_OrgEntity2:           Expr = "nr_OrgEntity";
+			}
+			attribute<ADomain> BaseGrid (domain_grid): Expr = "invert(ADomain/nr_OrgEntity2)";
+		
+			container SuitabilityMaps: expr = 
+				"for_each_nedv("
+					"  AllocType/Name"
+					", 'Int32("
+						"MakeDefined("
+							"  TotalSuitabilityMaps/'+AllocType/Name+ '[ADomain/nr_orgEntity2]*SuitScalingFactor"
+							", float32(0)"
+						")"
+					"  )'"
+					", ADomain"
+					", Int32"
+				")"
+			;
+			attribute<AtomicRegions> AtomicRegionMap (ADomain): expr = "AtomicRegions/UnionData[ADomain/nr_orgEntity2]";
+		}
+		
+		parameter<int32> treshold: expr = "int32(-20000[Float32] * SuitScalingFactor )";
+		
+		container FeasibleSolution;
+
+		container discrete_alloc: expr = 
+			"discrete_alloc("
+				"  AllocType/Name"
+				", Compacted/ADomain"
+				", Compacted/SuitabilityMaps"
+				", rlookup(RegionRefs, UniqueRegionRefs/Values)"
+				", UniqueRegionRefs/Values"
+				", AtomicRegions"
+				", Compacted/AtomicRegionMap"
+				", minclaims"
+				", maxclaims"
+				", treshold"
+				", FeasibleSolution"
+			")"
+		{
+			attribute<AllocType> landuse_grid (domain_grid): expr = "landuse[Compacted/BaseGrid]";
+		}
+	}
+
+	container results
+	{
+		container landuse
+		{
+			attribute<AllocType> Endogenous (domain_grid): Expr = 
+				"casedata/discrete_alloc/landuse_grid";
+			attribute <ModelType> Model(domain_grid): Expr = 
+				"MakeDefined(AllocType/nr_OrgEntity[Endogenous], ExogenousLand)";
+				
+			container Anderungen
+			{
+				attribute<ModelType> Von(domain_grid): Expr = "iif(Model!=orgLandUse, orgLandUse, (0 / 0)[ModelType])";
+				attribute<ModelType> Zu(domain_grid): Expr = "iif(Model!=orgLandUse, Model     , (0 / 0)[ModelType])";
+				
+				attribute<Classifications/YesorNo>IsUrban (dla_100m): Expr = "lookup(Model, Classifications/LU/ModelType/IsUrban)";
+				attribute<Classifications/YesorNo>IsUrban_oUG (dla_100m): Expr = "lookup(Model, Classifications/LU/ModelType/IsUrban_oUG)";
+				
+				attribute<Classifications/YesorNo>VonUrban (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/IsUrban) = True, lookup(Model, Classifications/LU/ModelType/IsUrban) = False)" ; 
+				//attribute<ModelType>ZuUrban (domain_grid): Expr = "Uint8(bool(and(lookup(orgLandUse, Classifications/LU/ModelType/IsUrban) = False, lookup(Model, Classifications/LU/ModelType/IsUrban) = True)))" ; 
+				attribute<Classifications/YesorNo>ZuUrban (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/IsUrban) = False, lookup(Model, Classifications/LU/ModelType/IsUrban) = True)" ; 
+				attribute<ModelType>ZuUrban_Export(domain_grid):Expr = "Uint8(ZuUrban)";
+				attribute<Classifications/YesorNo>VonUrbanFabric (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/Name) = 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) != 'urban_fabric')" ; 
+				attribute<Classifications/YesorNo>ZuUrbanFabric (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/Name) != 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) = 'urban_fabric')" ; 
+				attribute<ModelType>ZuUrbanFabric_Export(domain_grid):Expr = "Uint8(ZuUrbanFabric)";
+				attribute<Classifications/YesorNo>VonFreeLand (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/IsFreeLand) = True, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = False)" ; 
+				attribute<Classifications/YesorNo>ZuFreeLand (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/IsFreeLand) = False, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = True)" ; 
+				attribute<Classifications/YesorNo>ZuUrban_oUG (dla_100m): IsHidden = "True", Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/IsUrban_oUG) = False, lookup(Model, Classifications/LU/ModelType/IsUrban_oUG) = True)" ; 
+				attribute<Classifications/YesorNo>VonAgriculture (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/IsAgri) = True, lookup(Model, Classifications/LU/ModelType/IsAgri) = False)" ;
+				attribute<Classifications/YesorNo>ZuAgriculture (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/IsAgri) = False, lookup(Model, Classifications/LU/ModelType/IsAgri) = True)" ;
+				attribute<Classifications/YesorNo>VonArable (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/Name) = 'arable', lookup(Model, Classifications/LU/ModelType/Name) != 'arable')" ; 
+				attribute<Classifications/YesorNo>ZuArable (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/Name) != 'arable', lookup(Model, Classifications/LU/ModelType/Name) = 'arable')" ; 
+				attribute<Classifications/YesorNo>VonPasture (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/Name) = 'pasture', lookup(Model, Classifications/LU/ModelType/Name) != 'pasture')" ; 
+				attribute<Classifications/YesorNo>ZuPasture (dla_100m): Expr = "and(lookup(orgLandUse, Classifications/LU/ModelType/Name) != 'pasture', lookup(Model, Classifications/LU/ModelType/Name) = 'pasture')" ; 
+
+
+				parameter<Float32> PercentLossFreeLand: Expr = "sum(float32(ZuUrban_oUG))/sum(float32(lookup(orgLandUse, Classifications/LU/ModelType/IsFreeLand)= True))* value(100, float32)";
+			}
+			
+			container AnderungenSeit2008
+			{
+				attribute<ModelType> Von(domain_grid): Expr = "iif(Model!=Present/landuse/germany, Present/landuse/germany, (0 / 0)[ModelType])";
+				attribute<ModelType> Zu(domain_grid): Expr = "iif(Model!=Present/landuse/germany, Model                  , (0 / 0)[ModelType])";
+				
+				attribute<Classifications/YesorNo>VonUrban (dla_100m): Expr = "and(present/landuse/IsUrban = True, lookup(Model, Classifications/LU/ModelType/IsUrban) = False)" ; 	
+				attribute<Classifications/YesorNo>ZuUrban (dla_100m): Expr = "and(present/landuse/IsUrban = False, lookup(Model, Classifications/LU/ModelType/IsUrban) = True)" ; 
+				attribute<ModelType>ZuUrban_Export(domain_grid):Expr = "Uint8(ZuUrban)";
+				attribute<Classifications/YesorNo>VonUrbanFabric (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) != 'urban_fabric')" ; 
+				attribute<Classifications/YesorNo>ZuUrbanFabric (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) = 'urban_fabric')" ; 
+				attribute<ModelType>ZuUrbanFabric_Export(domain_grid):Expr = "Uint8(ZuUrbanFabric)";
+				attribute<Classifications/YesorNo>VonIndustry (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'industrial_commercial', lookup(Model, Classifications/LU/ModelType/Name) != 'industrial_commercial')" ; 
+				attribute<Classifications/YesorNo>ZuIndustry (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'industrial_commercial', lookup(Model, Classifications/LU/ModelType/Name) = 'industrial_commercial')" ; 
+				attribute<Classifications/YesorNo>VonInfrastructure (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'infrastructure', lookup(Model, Classifications/LU/ModelType/Name) != 'infrastructure')" ; 
+				attribute<Classifications/YesorNo>ZuInfrastructure (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'infrastructure', lookup(Model, Classifications/LU/ModelType/Name) = 'infrastructure')" ; 
+				attribute<Classifications/YesorNo>VonGreenUrban (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'green_urban', lookup(Model, Classifications/LU/ModelType/Name) != 'green_urban')" ; 
+				attribute<Classifications/YesorNo>ZuGreenUrban (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'green_urban', lookup(Model, Classifications/LU/ModelType/Name) = 'green_urban')" ; 
+				attribute<Classifications/YesorNo>VonFreeLand (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/IsFreeLand) = True, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = False)" ; 
+				attribute<Classifications/YesorNo>ZuFreeLand (dla_100m): Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/IsFreeLand) = False, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = True)" ; 
+				attribute<Classifications/YesorNo>ZuUrban_oUG (dla_100m): IsHidden = "True", Expr = "and(lookup(present/landuse/germany, Classifications/LU/ModelType/IsUrban_oUG) = False, lookup(Model, Classifications/LU/ModelType/IsUrban_oUG) = True)" ;
+				attribute<Classifications/YesorNo>VonAgriculture (dla_100m): Expr = "and(present/landuse/IsAgri = True, lookup(Model, Classifications/LU/ModelType/IsAgri) = False)" ; 	
+				attribute<Classifications/YesorNo>ZuAgriculture (dla_100m): Expr = "and(present/landuse/IsAgri = False, lookup(Model, Classifications/LU/ModelType/IsAgri) = True)" ; 
+				attribute<Classifications/YesorNo>VonArable (dla_100m): Expr = "and(present/landuse/IsArable = True, lookup(Model, Classifications/LU/ModelType/IsArable) = False)" ; 	
+				attribute<Classifications/YesorNo>ZuArable (dla_100m): Expr = "and(present/landuse/IsArable = False, lookup(Model, Classifications/LU/ModelType/IsArable) = True)" ; 
+				attribute<Classifications/YesorNo>VonPasture (dla_100m): Expr = "and(present/landuse/IsPasture = True, lookup(Model, Classifications/LU/ModelType/IsPasture) = False)" ; 	
+				attribute<Classifications/YesorNo>ZuPasture (dla_100m): Expr = "and(present/landuse/IsPasture = False, lookup(Model, Classifications/LU/ModelType/IsPasture) = True)" ; 
+				 
+				parameter<Float32> PercentLossFreeLand: Expr = "sum(float32(ZuUrban_oUG))/sum(float32(present/landuse/IsFreeLand))* value(100, float32)";
+			}
+		#include <evaluation.dms>
+		}
+		container landuse_250: Expr = "RekenSchemas/BalancedClassAggr(domain_grid, dla_250m, ModelType, landuse/Model, dla_50m)";
+	}
+}
+

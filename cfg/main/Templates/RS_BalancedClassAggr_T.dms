@@ -1,0 +1,109 @@
+// //////////////////////////////////////////////////////////////////////////////////////
+//                                                                                     //
+// This template contains the call to the discrete allocation                          //
+//                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////
+
+Template BalancedClassAggr_T
+{
+	// Begin CaseParameters
+	unit<spoint>          org_domain;
+	unit<spoint>          dst_domain;
+	unit<uint8>           ClassType;
+	attribute<ClassType>  org_Landuse (org_domain);
+	// End Obligatory CaseParameters
+	unit<spoint>          mid_domain := org_domain;
+	// End Optional CaseParameters
+	
+	container CaseData
+	{
+		attribute<org_domain> mid2org     (mid_domain) := convert(ID(mid_domain), org_domain);
+		attribute<dst_domain> mid2dst     (mid_domain) := convert(ID(mid_domain), dst_domain);
+		attribute<ClassType>  mid_Landuse (mid_domain) := org_Landuse[mid2org];
+		attribute<bool>       has_Landuse (dst_domain) := any(IsDefined(mid_Landuse), mid2dst);
+	
+		container Suitability := 
+			for_each_nedv(
+				ClassType/name,
+				'Int32(sum(uint8(mid_LandUse == '+String(ID(ClassType))+'[ClassType]), mid2dst))',
+				dst_domain, Int32
+			);
+			
+		parameter<Float64>   AreaFactor                 := Float64(dst_domain/nrHaPerCel) / Float64(mid_domain/nrHaPerCel);
+		attribute<ClassType> Opleg         (dst_domain) := ='switch('+AsList('case(Suitability/'+ClassType/Name+'==Int32(AreaFactor), '+String(ID(ClassType))+'[ClassType]),', '') +'(0 / 0)[ClassType])';
+		attribute<bool>      IsAllocatable (dst_domain) := !IsDefined(Opleg);
+		
+		unit<uint8> ClaimRegions := Range(uint8, 0b, 1b);
+		
+		container Compacted
+		{
+			unit <uint32> ADomain := select_with_org_rel(IsAllocatable)
+			,	label      = "allocation domain"
+			,	DialogType = "Map"
+			,	DialogData = "BaseGrid"
+			{
+				attribute<ADomain>      permutation   := rnd_permutation(0, ADomain);
+				attribute<dst_domain>   nr_OrgEntity2 := lookup(permutation, org_rel);
+			}
+			
+			attribute<ADomain> BaseGrid    (dst_domain) := invert(ADomain/nr_OrgEntity2);
+			attribute<UInt32>  pCountMid    (ClassType) := pcount(IsAllocatable[mid2dst] ? mid_landuse : (0 / 0)[ClassType]); // permutation irrelevant for count
+			attribute<Float64> pCountDst    (ClassType) := Float64(pCountMid) / AreaFactor;
+			attribute<UInt32>  pCountDstLow (ClassType) := UInt32(RoundDown(pCountDst));
+			attribute<UInt32>  pCountDstHgh (ClassType) := UInt32(RoundUp(pCountDst));
+		
+			container MinClaims := 
+				for_each_nedv(
+					ClassType/Name
+					, 'const('+String(pCountDstLow)+', ClaimRegions)'
+					, ClaimRegions
+					, UInt32
+				);
+			container MaxClaims := 
+				for_each_nedv(
+					ClassType/Name
+					, 'const('+String(pCountDsthgh)+', ClaimRegions)'
+					, ClaimRegions
+					, UInt32
+				);
+		
+			container SuitabilityMaps := 
+				for_each_nedv(
+					  ClassType/Name
+					, 'Suitability/'+ClassType/Name+ '[ADomain/nr_orgEntity2]'
+					, ADomain
+					, Int32
+				);
+				
+			attribute<ClaimRegions> AtomicRegionMap (ADomain) := const(0[ClaimRegions], ADomain);
+		}
+		
+		attribute<String> RegionRefs (ClassType) := const('TheRegionGrid', ClassType);
+		unit<UInt8> UniqueRegionRefs := unique(RegionRefs);
+
+		unit<uint8> AtomicRegions := ClaimRegions
+		{
+			attribute<ClaimRegions>   TheRegionGrid := ID(ClaimRegions);
+		}
+
+		container FeasibleSolution;
+
+		container discrete_alloc := 
+			discrete_alloc(
+				  ClassType/Name
+				, Compacted/ADomain
+				, Compacted/SuitabilityMaps
+				, rlookup(RegionRefs, UniqueRegionRefs/Values)
+				, UniqueRegionRefs/Values
+				, AtomicRegions
+				, Compacted/AtomicRegionMap
+				, Compacted/minclaims
+				, Compacted/maxclaims
+				, -1
+				, FeasibleSolution
+			);
+	}
+
+	attribute <ClassType> BalancedClassAggr (dst_domain) := MakeDefined(CaseData/discrete_alloc/landuse[CaseData/Compacted/BaseGrid], CaseData/Opleg);
+}
+

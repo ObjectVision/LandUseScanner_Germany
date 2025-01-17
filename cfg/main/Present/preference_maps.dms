@@ -1,0 +1,6 @@
+
+container preference_maps
+{
+	attribute<Classifications/Preference> pref_infrastructure_construction (domain_grid): StorageName = "%LUS_DataDir%/preference/pref_infrastructure_construction_2bit.tif";
+//	attribute<Classifications/Preference> pref_infrastructure_planung_osm (domain_grid): StorageName = "%LUS_DataDir%/preference/pref_infrastructure_planung_osm.tif";
+	}

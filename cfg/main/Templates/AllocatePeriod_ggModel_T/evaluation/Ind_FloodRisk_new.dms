@@ -1,0 +1,283 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container Ind_FloodRisk_new: Descr = "A set of indicators allowing the evaluation of policies by describing their impact flood risk."		
+	{
+		container Preparation: Descr = "Preparation for calculation"
+		{
+						
+			parameter<float32> Germany_HQ100: Expr = "sum(float32(Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(2, Policy_Levels)))",Descr="HQ100 in Flood-Scenario";
+			parameter<float32> Germany_HQ200: Expr = "sum(float32(Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(1, Policy_Levels)))",Descr="HQ200 in Flood-Scenario";
+			parameter<float32> Germany_HQ_combined: Expr = "sum(float32(iif(Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(1, Policy_Levels) || Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(2, Policy_Levels), value(1,Policy_Levels), value(0,Policy_Levels))))",Descr="HQ100 and HQ200 in Flood-Scenario";
+			
+			
+			container FloodLayers: Descr = "Preparation for calculations with flood layers"
+			{
+				container Current: Descr = "Current status"
+				{
+					parameter <float32> CurrentUrbanAreasOnFloodHQ_L_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ_L)) / Germany_HQ_combined * value(100,float32)";
+					
+					parameter <float32> CurrentUrbanAreasOnFloodHQ_M_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ_M)) / Germany_HQ100 * value(100,float32)";
+					
+					parameter <float32> ShareCurrentUrbanAreasOnFloodHQ_L_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ_L)) / sum(float32(present/landuse/IsUrban_oUG)) * value(100,float32)";
+					
+					parameter <float32> ShareCurrentUrbanAreasOnFloodHQ_M_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ_M)) / sum(float32(present/landuse/IsUrban_oUG)) * value(100,float32)";
+					
+					attribute <float32> FloodHQ_L_Ha (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(iif(Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(1, Policy_Levels) || Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(2, Policy_Levels), value(1,Policy_Levels), value(0,Policy_Levels))), Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> FloodHQ_M_Ha (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(iif(Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(2, Policy_Levels), value(1,Policy_Levels), value(0,Policy_Levels))), Geography/RegionGrids/Kreise)";
+				
+					/*attribute <float32> FloodHQ100_Ha (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(Present/thematic_maps/NatureLandscape/Floods100y > value(0, policy_levels)), Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> FloodHQextr_bafg_Ha (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(Present/thematic_maps/NatureLandscape/Floods_extr_bafg > value(0, policy_levels)), Geography/RegionGrids/Kreise)";*/
+					
+					attribute <float32> CurrentUrbanAreasOnFloodHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ_L)
+										, Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> CurrentUrbanAreasOnFloodHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ_M)
+										, Geography/RegionGrids/Kreise)";												
+					
+					/*attribute <float32> CurrentUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ100)
+										, Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> CurrentUrbanAreasOnFlood_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/Current/Urban_oUG/nature_landscape/CurrUrban_oUGInHQ_extr_bafg)
+										, Geography/RegionGrids/Kreise)";*/
+				}
+				container Actual: Descr = "Actual status"
+				{
+					attribute <float32> ActualUrbanAreasOnFloodHQ_L(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/ActualUrban_oUGInHQ_L)
+										, Geography/RegionGrids/Kreise)";	
+					
+					attribute <float32> ActualUrbanAreasOnFloodHQ_M(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/ActualUrban_oUGInHQ_M)
+										, Geography/RegionGrids/Kreise)";				
+					
+					/*attribute <float32> ActualUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/ActualUrban_oUGInHQ100)
+										, Geography/RegionGrids/Kreise)";
+										
+					attribute <float32> ActualUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/ActualUrban_oUGInHQ_extr_bafg)
+										, Geography/RegionGrids/Kreise)";*/
+				}
+				container Changes: Descr = "New urban cells"
+				{
+					parameter <float32> NewUrbanAreasOnFloodHQ_L_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ_L)) / Germany_HQ_combined * value(100,float32)";
+					
+					parameter <float32> NewUrbanAreasOnFloodHQ_M_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ_M)) / Germany_HQ100 * value(100,float32)";
+					
+					parameter <float32> ShareNewUrbanAreasOnFloodHQ_L_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ_L)) / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban_oUG)) * value(100,float32)";
+					
+					parameter <float32> ShareNewUrbanAreasOnFloodHQ_M_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ_M)) / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban_oUG)) * value(100,float32)";
+					
+					attribute <float32> NewUrbanAreasOnFloodHQ_L(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ_L)
+										, Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> NewUrbanAreasOnFloodHQ_M(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ_M)
+										, Geography/RegionGrids/Kreise)";				
+					
+				/*	attribute <float32> NewUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ100)
+										, Geography/RegionGrids/Kreise)";
+										
+					attribute <float32> NewUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_oUG/NatureLandscape/Urban_oUGInHQ_extr_bafg)
+										, Geography/RegionGrids/Kreise)";*/
+				}
+			}
+				
+			
+		}
+		container SubIndicators_FloodRisk: Descr = "Single Indicators describing impact on flood risk"
+		{
+			
+			container FloodLayers: Descr = "Calculations with flood layers"
+			{
+				container Current: Descr = "Current Status"
+				{
+					attribute <float32> CurrentUrbanAreasOnFloodHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L / Preparation/FloodLayers/Current/FloodHQ_L_Ha) * value(100, float32))";
+						
+					attribute <float32> CurrentUrbanAreasOnFloodHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M / Preparation/FloodLayers/Current/FloodHQ_M_Ha) * value(100, float32))";
+					
+					/*attribute <float32> CurrentUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ100 / Preparation/FloodLayers/Current/FloodHQ100_Ha) * value(100, float32))";
+					
+					attribute <float32> CurrentUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFlood_extr_bafg / Preparation/FloodLayers/Current/FloodHQextr_bafg_Ha) * value(100, float32))";*/
+					
+					attribute <float32> ShareCurrentUrbanAreasOnFloodHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+			
+					attribute <float32> ShareCurrentUrbanAreasOnFloodHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+						
+					/*attribute <float32> ShareCurrentUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ100 / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+			
+					attribute <float32> ShareCurrentUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Current/CurrentUrbanAreasOnFlood_extr_bafg / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";*/
+				}
+				container Actual: Descr = "Actual Status"
+				{
+					attribute <float32> ActualUrbanAreasOnFloodHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_L / Preparation/FloodLayers/Current/FloodHQ_L_Ha) * value(100, float32))";
+						
+					attribute <float32> ActualUrbanAreasOnFloodHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_M / Preparation/FloodLayers/Current/FloodHQ_M_Ha) * value(100, float32))";
+			
+					/*attribute <float32> ActualUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ100 / Preparation/FloodLayers/Current/FloodHQ100_Ha) * value(100, float32))";
+					
+					attribute <float32> ActualUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_extr_bafg / Preparation/FloodLayers/Current/FloodHQextr_bafg_Ha) * value(100, float32))";*/
+					
+					attribute <float32> ShareActualUrbanAreasOnFloodHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_L / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+					
+					attribute <float32> ShareActualUrbanAreasOnFloodHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_M / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+			
+					/*attribute <float32> ShareActualUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ100 / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+			
+					attribute <float32> ShareActualUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_extr_bafg / sum(float32(present/landuse/IsUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";*/
+				}
+				container Changes: Descr = "New urban cells"
+				{
+					attribute <float32> NewUrbanAreasOnFloodHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L / Preparation/FloodLayers/Current/FloodHQ_L_Ha) * value(100, float32))";
+			
+					attribute <float32> NewUrbanAreasOnFloodHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M / Preparation/FloodLayers/Current/FloodHQ_M_Ha) * value(100, float32))";
+						
+				/*	attribute <float32> NewUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ100 / Preparation/FloodLayers/Current/FloodHQ100_Ha) * value(100, float32))";
+						
+					attribute <float32> NewUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_extr_bafg / Preparation/FloodLayers/Current/FloodHQextr_bafg_Ha) * value(100, float32))";*/
+					
+					attribute <float32> ShareNewUrbanAreasOnFloodHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+					
+					attribute <float32> ShareNewUrbanAreasOnFloodHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+					
+				/*	attribute <float32> ShareNewUrbanAreasOnFloodHQ100 (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ100 / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";
+					
+					attribute <float32> ShareNewUrbanAreasOnFloodHQ_extr_bafg (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_extr_bafg / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban_oUG), Geography/RegionGrids/Kreise) * value(100, float32)))";*/
+				}
+				
+				attribute <float32> Ind_HW01a_CurrUrbanOnHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L * value(100, float32)) / Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L * value(100, float32)) / Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L * value(100, float32)) / Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW01b_ActualUrbanOnHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_L * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_L * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_L * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_L), value(100, float32)))";
+				
+				attribute <float32> Ind_HW02a_CurrUrbanOnHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M * value(100, float32)) / Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M * value(100, float32)) / Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M * value(100, float32)) / Preparation/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW02b_ActualUrbanOnHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_M * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_M * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Actual/ActualUrbanAreasOnFloodHQ_M * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/CurrentUrbanAreasOnFloodHQ_M), value(100, float32)))";
+									 
+				attribute <float32> Ind_HW03a_ShareCurrUrbanOnHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L * value(100, float32)) / Preparation/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L * value(100, float32)) / Preparation/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L * value(100, float32)) / Preparation/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW03b_ShareActualUrbanOnHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"	
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ShareActualUrbanAreasOnFloodHQ_L * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ShareActualUrbanAreasOnFloodHQ_L * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Actual/ShareActualUrbanAreasOnFloodHQ_L * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_L), value(100, float32)))";
+				
+				attribute <float32> Ind_HW04a_ShareCurrUrbanOnHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M * value(100, float32)) / Preparation/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M * value(100, float32)) / Preparation/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M * value(100, float32)) / Preparation/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW04b_ShareActualUrbanOnHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"	
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ShareActualUrbanAreasOnFloodHQ_M * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Actual/ShareActualUrbanAreasOnFloodHQ_M * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Actual/ShareActualUrbanAreasOnFloodHQ_M * value(100, float32)) / SubIndicators_FloodRisk/FloodLayers/Current/ShareCurrentUrbanAreasOnFloodHQ_M), value(100, float32)))";
+				
+				attribute <float32> Ind_HW05_NewUrbanOnHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_L_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW06_NewUrbanOnHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/NewUrbanAreasOnFloodHQ_M_Germany), value(0, float32)))";
+									 
+				attribute <float32> Ind_HW07_ShareNewUrbanOnHQ_L (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_L * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_L_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_L * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_L_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_L * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_L_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW08_ShareNewUrbanOnHQ_M (Geography/RegionDomains/Kreise): IsHidden = "True"	
+					,	Expr	=	"iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_M * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_M_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_FloodRisk/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_M * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_M_Germany)) > value(0, float32),
+									 float32((SubIndicators_FloodRisk/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_M * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/Preparation/FloodLayers/Changes/ShareNewUrbanAreasOnFloodHQ_M_Germany), value(0, float32)))";
+									 
+				
+				
+			}
+		
+		}
+		
+			attribute <float32> HWnat_R (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "(value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW01a_CurrUrbanOnHQ_L) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW02a_CurrUrbanOnHQ_M) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW03a_ShareCurrUrbanOnHQ_L) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW04a_ShareCurrUrbanOnHQ_M)";				 
+			
+			//attribute <float32> HWnat_Z (Geography/RegionDomains/Kreise): IsHidden = "True"
+			//	,	Expr	= "(value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW03b_ActualUrbanOnFloodLayers) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW04b_ActualUrbanOnBothFloodLayers) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW05b_ShareActualUrbanOnFloodLayers) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW06b_ShareActualUrbanOnBothFloodLayers)";
+			
+			attribute <float32> HWnat_New (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "(value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW05_NewUrbanOnHQ_L) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW06_NewUrbanOnHQ_M) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW07_ShareNewUrbanOnHQ_L) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW08_ShareNewUrbanOnHQ_M)";
+			
+			attribute <float32> HWnat_Combi (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "(value(0.5, float32) * HWnat_R) + (value(0.5, float32) * HWnat_New)";
+				
+			attribute <float32> HW_DIFF_BASELINE_NEW (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "HWnat_New - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/HWnat_New";
+				
+			attribute <float32> HW_DIFF_BASELINE_COMBI (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "HWnat_Combi - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_FloodRisk_new/HWnat_Combi";
+				
+	
+
+}

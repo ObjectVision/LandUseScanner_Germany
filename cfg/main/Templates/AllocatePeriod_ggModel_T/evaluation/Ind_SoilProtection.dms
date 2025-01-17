@@ -1,0 +1,67 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+container Ind_SoilProtection: Descr = "A set of indicators allowing the evaluation of policies by describing their impact on soils and their productivity."		
+{
+	container Preparation: Descr = "Preparation for calculation"
+	{
+					
+		parameter<uint32> GermanySQR60: Expr = "sum(uint32(Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr)))";
+			
+		parameter<uint32> GermanySQR80: Expr = "sum(uint32(Present/thematic_maps/NatureLandscape/SoilQuality >= value(80, msqr)))";
+				
+		parameter<float32> GermanyUrbanAreasOnSQR60: Expr = "sum(float32(ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Local/UrbanDev_Areas/NatureLandscape/UrbanInSoilQuality))/sum(float32(GermanySQR60))* value(100, float32)";
+			
+		parameter<float32> GermanyUrbanAreasOnSQR80: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/NatureLandscape/UrbanInSoilQuality))/sum(float32(GermanySQR80))* value(100, float32)";
+				
+		parameter<float32> GermanyShareUrbanAreasOnSQR60: Expr = "sum(float32(ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Local/UrbanDev_Areas/NatureLandscape/UrbanInSoilQuality))/sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban))* value(100, float32)";
+			
+		parameter<float32> GermanyShareUrbanAreasOnSQR80: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/NatureLandscape/UrbanInSoilQuality80))/sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban))* value(100, float32)";
+			
+		attribute <float32> NrOfUrbanAreasOnSQR60 (Geography/RegionDomains/Kreise): IsHidden = "True" 
+			,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/NatureLandscape/UrbanInSoilQuality), Geography/RegionGrids/Kreise)";
+				
+		attribute <float32> NrOfSQR60 (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(float32(Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr)), Geography/RegionGrids/Kreise)";
+				
+	}
+	container SubIndicators_SoilProtection: Descr = "Single Indicators describing impact on soils and their productivity"
+	{
+		attribute <float32> UrbanSprawlOnSQR60 (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "float32((Preparation/NrOfUrbanAreasOnSQR60 / Preparation/NrOfSQR60) * value(100, float32))";
+			
+		attribute <float32> ShareUrbanSprawlOnSQR60 (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "float32((Preparation/NrOfUrbanAreasOnSQR60 / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+		
+		attribute <float32> Ind_UrbanSprawlOnSQR60 (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "iif((float32((UrbanSprawlOnSQR60 * value(100, float32)) / Preparation/GermanyUrbanAreasOnSQR60)) > value(200, float32), value(200, float32), 
+						   iif((float32((UrbanSprawlOnSQR60 * value(100, float32)) / Preparation/GermanyUrbanAreasOnSQR60)) > value(  0, float32), 
+						   float32((UrbanSprawlOnSQR60 * value(100, float32)) / Preparation/GermanyUrbanAreasOnSQR60), value(0, float32)))";
+						   
+		attribute <float32> Ind_ShareUrbanSprawlOnSQR60 (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "iif((float32((ShareUrbanSprawlOnSQR60 * value(100, float32)) / Preparation/GermanyShareUrbanAreasOnSQR60)) > value(200, float32), value(200, float32), 
+						   iif((float32((ShareUrbanSprawlOnSQR60 * value(100, float32)) / Preparation/GermanyShareUrbanAreasOnSQR60)) > value(  0, float32), 
+						   float32((ShareUrbanSprawlOnSQR60 * value(100, float32)) / Preparation/GermanyShareUrbanAreasOnSQR60), value(0, float32)))";
+		
+	}
+	
+	attribute <float32> BS_R (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "(value(0.5, float32) * SubIndicators_SoilProtection/Ind_UrbanSprawlOnSQR60) + (value(0.5, float32) * SubIndicators_SoilProtection/Ind_ShareUrbanSprawlOnSQR60)";
+			
+	attribute <float32> BS_DIFF_BASELINE_NEW (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "BS_R - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_SoilProtection/BS_R";
+			
+}

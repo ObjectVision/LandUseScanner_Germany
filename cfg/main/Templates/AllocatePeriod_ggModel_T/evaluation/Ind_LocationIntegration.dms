@@ -1,0 +1,63 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+container Ind_LocationIntegration: Descr = "A set of indicators allowing the evaluation of the integration od new urban cells in existing urban areas."		
+{
+	container Preparation: Descr = "Preparation for calculation"
+	{
+		
+		container Kernel
+			{
+				unit<spoint> pot100mRange: Range = "[{-1, -1}, {2, 2})"
+					{
+						attribute<uint32> distMatr: expr = "dist2(point(int16(0), int16(0), pot100mRange), uint32)";
+						attribute<float32> AbsWeight: expr = "float32(iif(distMatr == uint32(1), value(1, uint32), value(0, uint32)))";
+					}
+			}
+					
+		attribute<float32> IsUrbanPotential100m  (domain_grid): Expr = "potential(float32(lookup(results/landuse/model, Classifications/LU/ModelType/IsUrban)),  Kernel/pot100mRange/AbsWeight)";
+		attribute<float32> neighbors (domain_grid): Expr = "iif(results/landuse/AnderungenSeit2008/ZuUrban == value(TRUE, bool), IsUrbanPotential100m, float32(0)) / float32(4)";
+					
+		parameter<float32> GermanyLocationIntegration: Expr = "sum(neighbors) / sum(float32(results/landuse/AnderungenSeit2008/ZuUrban == value(TRUE, bool)))";
+			
+		attribute <float32> SI01_LocationIntegration (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "iif(isnull(sum(neighbors, Geography/RegionGrids/Kreise) / sum(float32(results/landuse/AnderungenSeit2008/ZuUrban == value(TRUE, bool)), Geography/RegionGrids/Kreise)), float32(1), 
+									   sum(neighbors, Geography/RegionGrids/Kreise) / sum(float32(results/landuse/AnderungenSeit2008/ZuUrban == value(TRUE, bool)), Geography/RegionGrids/Kreise))";
+		
+		
+	}
+	container SubIndicators_LocationIntegration: Descr = "Single Indicators describing land consumption"
+	{
+		
+		attribute <float32> Ind_SI01_LocationIntegration (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "	iif((float32((Preparation/SI01_LocationIntegration / Preparation/GermanyLocationIntegration)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/SI01_LocationIntegration / Preparation/GermanyLocationIntegration)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/SI01_LocationIntegration / Preparation/GermanyLocationIntegration)) * value(100, float32), value(0, float32)))";
+
+		attribute <float32> Ind_SI01_LocationIntegrationRescale (Geography/RegionDomains/Kreise): IsHidden = "True"
+						, 	Expr	= "value(-1, float32)*(Ind_SI01_LocationIntegration - min(Ind_SI01_LocationIntegration)) + max(Ind_SI01_LocationIntegration)";			
+	}
+	
+	attribute <float32> IND_SI (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "SubIndicators_LocationIntegration/Ind_SI01_LocationIntegrationRescale";
+			
+	attribute <float32> IND_SI_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "IND_SI - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LocationIntegration/IND_SI";
+				
+	attribute <float32> IND_SI_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LocationIntegration/IND_SI + IND_SI_DIFF_BL";
+		
+}

@@ -1,0 +1,90 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                    //
+//                                                                                    //
+//                       Configuratie voor project: Open Data Analyse                 //
+//                                                                                    //
+//                              Object Vision 2011                                    //
+//                                                                                    //
+////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                    //
+//       Configuratiebestand voor opbouw Netwerk, waarin de herkomst en               //
+//       bestemmings locaties gekoppeld worden aan een gesloten netwerk               //
+////////////////////////////////////////////////////////////////////////////////////////
+
+container OrgToDest
+{
+	// unit<uint32> Locations := unique(SubItem(union(orgLocations, destLocations), 'UnionData'))
+	unit<uint32> AllLocations := union(orgLocations, destLocations);
+	unit<uint32> Locations    := unique(AllLocations/uniondata)
+	{
+		attribute<SRS> geometry := values, Label = "unique Locations of origins and destinations";
+	}
+	unit<uint32> RoadsWithLocations	:= connect(MakeConnectedRoads/result/geometry, OrgToDest/Locations/geometry)
+	{
+		attribute<RoadClass> roadtype := MakeDefined(MakeConnectedRoads/result/roadtype[arc_rel], ConnectionClassID);
+	}
+	unit <uint32> LinkSet := arc2segm(RoadsWithLocations/geometry)
+	{
+		attribute<roadClass>          roadtype       := RoadsWithLocations/roadtype[Sequence_rel];
+		attribute<ImpUnit>            impedance_link := impedance_Calculation/Result[ImpUnit];
+		
+		container impedance_Calculation := ImpedanceTraits/Calculator_T(LinkSet, point, nextPoint, roadType);
+		
+		unit<uint32> pointset := Union_Unit(., .)
+		{
+			attribute<SRS>      point   := Union_Data(., ../point, ../nextpoint);
+			attribute<..>       arc_rel := value(id(.) % nrofrows(..), ..);
+			attribute<uint32>   ordinal := id(.) / nrofrows(..);
+		}
+		
+		attribute<SRS> geometry(arc):= points2sequence(pointset/point, pointset/arc_rel, pointset/ordinal);
+
+	}
+	unit<uint32> NodeSet := unique(linkset/pointset/point)
+	{
+		attribute<SRS>      geometry        := values;
+		attribute<uint32>   NrConnectedLinks := pcount(F1) + pcount(F2);
+	}
+
+	attribute<NodeSet> F1(LinkSet):= rlookup(LinkSet/point,     NodeSet/geometry);
+	attribute<NodeSet> F2(LinkSet):= rlookup(LinkSet/nextpoint, NodeSet/geometry);
+
+	container ConnectingLinks 
+	// hiermee wordt voor ieder begin en eind node het aantal geconnecte links bepaald
+	// dit bepaalt of het een bocht (2 links), zijweg (3 links), kruising (4 links) of complexe kruising (meer dan 4 links) is
+	// afhankelijk van dit aantal wordt een aantal seconden opgeteld bij de totale impedance
+	{
+		parameter<sec> Impedance2Links    := 0[sec];
+		parameter<sec> Impedance3Links    := 2[sec];
+		parameter<sec> Impedance4Links    := 5[sec];
+		parameter<sec> Impedance_gt4Links := 6[sec];
+
+		attribute<uint32> Start(LinkSet):= NodeSet/NrConnectedLinks[F1];
+		attribute<uint32> End  (LinkSet):= NodeSet/NrConnectedLinks[F2];
+	
+		attribute<sec> impedance_Start (LinkSet) :=
+			switch(
+				 case(Start <= 2, Impedance2Links)
+				,case(Start  = 3, Impedance3Links)
+				,case(Start  = 4, Impedance4Links)
+				,Impedance_gt4Links
+			);
+	
+		attribute<sec> impedance_End (LinkSet) :=
+			switch(
+				 case(End <= 2, Impedance2Links)
+				,case(End  = 3, Impedance3Links)
+				,case(End  = 4, Impedance4Links)
+				,Impedance_gt4Links
+			);
+	}
+	attribute<ImpUnit> impedance (LinkSet):= linkset/impedance_link + ConnectingLinks/impedance_Start[ImpUnit]+ ConnectingLinks/impedance_End[ImpUnit];
+
+	attribute<NodeSet> OrgNode_rel  (orgDomain)  := rlookup(orgLocations, NodeSet/geometry);
+	attribute<NodeSet> DestNode_rel (destDomain) := rlookup(destLocations, NodeSet/geometry);
+
+	unit<uint32> connected_nodes:= connected_parts(OrgToDest/F1, OrgToDest/F2)
+	{
+		attribute<uint32> nr_nodes:= sum(const(1, OrgToDest/NodeSet, uint32), part_rel);
+	}
+}

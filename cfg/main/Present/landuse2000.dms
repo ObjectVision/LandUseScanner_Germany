@@ -1,0 +1,28 @@
+container landuse : using = "geography;classifications;classifications/LU"
+{
+	container Import
+	{
+		attribute<uint16> germany_src (domain_grid): StorageName = "%LUS_DataDir%/landuse/r100_landuse_2022_fullextent_nodata255_pv180_wp190_.tif"; 
+		attribute<uint8>  germany_ssl (domain_grid): StorageName = "%LUS_DataDir%/landuse/germany_ssl.tif"; //imperviousness density layer, muss noch aktualisiert werden
+	}
+	
+	attribute<ModelType>      Germany             (domain_grid) := MakeDefined(Classifications/LU/EK_Values/ModelType_rel[Import/germany_src], Classifications/LU/ModelType/v/outside_study_area);
+	attribute<uint8>          Germany_soilsealing (domain_grid) := Import/germany_ssl <= 100b ? Import/germany_ssl : 255b, cdf = "Classifications/Sealing/ClassBreaks";
+	attribute<LU/LU_Urban>    LU_Urban            (domain_grid) := lookup(germany, Classifications/LU/ModelType/LU_Urban_Rel);
+	attribute<YesorNo>        IsUrban             (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsUrban) ; 
+	attribute<Uint8>          IsUrban_Exp         (domain_grid) := uint8(IsUrban) ; 
+	attribute<LU/LU_FreeLand> LU_FreeLand         (domain_grid) := lookup(germany, Classifications/LU/ModelType/LU_FreeLand_Rel);
+	attribute<YesorNo>        IsFreeland          (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsFreeLand) ;
+	attribute<YesorNo>        IsUrban_oUG         (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsUrban_oUG) ; 
+	attribute<YesorNo>        IsArable            (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsArable) ; 
+	attribute<YesorNo>        IsPasture           (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsPasture) ; 
+	attribute<YesorNo>        IsAgri              (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsAgri) ; 
+	attribute<YesorNo>        IsGreen             (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsGreen) ;
+	attribute<YesorNo>        IsRenewable         (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsRenewable) ;
+	attribute<YesorNo>        IsFreeLand_ohneEE   (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsFreeLand_ohneEE) ;
+	attribute<YesorNo>        IsUrbanWKAPV        (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsUrbanWKAPV) ;	
+	attribute<YesorNo>        IsWKA               (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsWKA) ;
+	attribute<YesorNo>        IsPV                (domain_grid) := lookup(germany, Classifications/LU/ModelType/IsPV) ;
+	
+	container landuse_250 := Templates/BalancedClassAggr_T(domain_grid, dla_250m, ModelType, Germany, dla_50m);
+}

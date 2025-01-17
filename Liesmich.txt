@@ -1,0 +1,14 @@
+Zu beachten bei der weiteren Berarbeitung des LUS
+
+Regions:
+aufpassen, dass die Attributtabelle des Kreis-Tiffs keine No-Data Zeile enthält.
+
+Ausdehnung:
+Des bestehende Kreis-Tiff basiert auf dem offiziellen Kreis-Raster von dbgeom. Dieses ist die Referenz für alle Ausdehnungen und ist als Maske zu benutzen.
+
+Referenzen sind aktualisiert.
+
+Die Claims enthalten die gesamte zu alloziierende Zahl ha für eine Landnutzung. Nicht nur die additional claims.
+
+
+

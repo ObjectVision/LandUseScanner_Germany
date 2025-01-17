@@ -1,0 +1,282 @@
+// //////////////////////////////////////////////////////////////////////////////////////
+//                                                                                     //
+// This template contains the call to the discrete allocation                          //
+//                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////
+
+Template AllocatePeriod_ggModel_T : using = "units;classifications;classifications/lu;geography"
+{
+	// Begin CaseParameters
+	parameter<string> Year_name;
+	parameter<string> Scenario_name;
+	// End CaseParameters
+	
+	parameter<string>    PrevYear_name := rjoin(Year_name, Years/name, Years/PrevName);
+	container            PrevYear      := =PrevYear_name == 'Start' ? '/Present' : PrevYear_name;
+	
+	attribute<ModelType> Prev_Landuse    (domain_grid) := = PrevYear_name == 'Start' ? 'Present/landuse/germany' : 'PrevYear/Results/landuse/Model';
+	attribute<ModelType> ExogenousLand   (domain_grid) := ='BaseData/ExogenousLandUse/'+Year_name;
+	container            Claims                        := BaseData/RegionalClaimSets/RegionalClaimSets/Claims, Descr = "Crj: Claims per region per lu-type";
+	attribute<float32>   AgeLandUse      (domain_grid) := = PrevYear_name == 'Start' ? 'Present/thematic_maps/naturelandscape/ageforestsurbangreen' : 'PrevYear/Results/landuse/AnderungenVorherigerZeitschritt/Age';
+
+	parameter<Jahr>      StartYear                     := rjoin(Year_name, Years/name, Years/StartYear)[Jahr];
+	parameter<Jahr>      FinalYear                     := rjoin(Year_name, Years/name, Years/ModelYear)[Jahr];
+	parameter<Jahr>      PeriodDuration                := (FinalYear - StartYear);
+	
+	parameter<string> SuitabilitySwitch := 
+		switch(
+			 case(Scenario_name == 'Baseline', 'StaticSuitability')
+			,case(Scenario_name == 'Trend',    'StaticSuitability_Trend')
+			,case(Scenario_name == 'Dynamik',  'StaticSuitability_Dynamik')
+			,'Missing'
+		);
+	
+	parameter<string> EconomicSwitch := 
+		switch(
+			 case(Scenario_name == 'Baseline', 'Baseline')
+			,case(Scenario_name == 'Trend',    'Baseline')
+			,case(Scenario_name == 'Dynamik',  'Baseline')
+			,'Missing'
+		);
+	
+	container StaticSuitabilities 
+	{
+		container StaticSuitability         := Templates/Suitability/StaticSuitability_T(domain_grid, Present, ModelParameters/UrbanDensificationParameter, StartYear, FinalYear);
+		container StaticSuitability_Trend   := Templates/Suitability/StaticSuitability_Trend_T(domain_grid, Present, ModelParameters/UrbanDensificationParameter, StartYear, FinalYear);
+		container StaticSuitability_Dynamik := Templates/Suitability/StaticSuitability_Dynamik_T(domain_grid, Present, ModelParameters/UrbanDensificationParameter, StartYear, FinalYear);
+	}
+	
+	container DynamicSuitability := /Templates/Suitability/DynamicSuitabilities_T(domain_grid, Prev_Landuse, ModelParameters/UrbanDensificationParameter, StartYear, FinalYear, Scenario_name);
+	
+	container TotalSuitabilityMaps := 
+		for_each_nedv(
+			AllocType/Name
+			,'StaticSuitabilities/'+SuitabilitySwitch+'/'+AllocType/Name + '* EconomicParameters/'+EconomicSwitch+'/CapitalizationFactor[Classifications/LU/AllocType/v/'+AllocType/Name + '] + DynamicSuitability/'+AllocType/Name
+			,domain_grid
+			, units/euro_m2
+		);
+			
+	container CaseData 
+	{
+		attribute<String> RegionRefs    (AllocType) := ='union_data(AllocType'+AsList(',Claims/'+AllocType/Name+'/RegionUnit/IntrospectiveName', '')+')';
+		unit<UInt8>       UniqueRegionRefs          := Unique(RegionRefs);
+		
+		container MinClaimsOrg := 
+			for_each_nednv(
+				AllocType/Name
+				, 'UInt32(Claims/'+AllocType/Name+'/per_Year/'+Year_name+'/Min)'  
+				, Geography/RegionDomains
+				, RegionRefs
+				, UInt32
+			);
+			
+		container MinClaims := MinClaimsOrg
+		{
+			attribute<UInt32> Wohn_Misch (Geography/RegionDomains/Kreise):= UInt32(MinClaimsOrg/Wohn_Misch[Float32] * (1[Float32] - 0.05[Float32] * ModelParameters/UrbanDensificationParameter));
+		}
+		
+		container MaxClaims := 
+			for_each_nednv(
+				AllocType/Name
+				, 'UInt32(Claims/'+AllocType/Name+'/per_Year/'+Year_name+'/Max)'
+				, Geography/RegionDomains
+				, RegionRefs
+				, UInt32
+			);
+		
+		unit<Uint16> AtomicRegions := overlay(UniqueRegionRefs/Values, domain_grid, Geography/RegionGrids);
+		
+		attribute<bool> HasFreeLand (domain_grid) := Not(IsDefined(ExogenousLand));
+		parameter<Float32> SuitScalingFactor := 100f;
+		
+		container Compacted
+		{
+			unit <uint32> ADomain := select_with_org_rel(HasFreeLand)
+			,	label      = "allocation domain"
+			,	DialogType = "Map"
+			,	DialogData = "BaseGrid"
+			{
+				attribute<ADomain>       permutation  := rnd_permutation(0, ADomain);
+				attribute<domain_grid>   rnd_grid_rel := lookup(permutation, org_rel);
+			}
+			
+			attribute<ADomain> BaseGrid (domain_grid) := invert(ADomain/rnd_grid_rel);
+		
+			container SuitabilityMaps := 
+				for_each_nedv(
+					  AllocType/Name
+					, 'Int32(
+						MakeDefined(
+							  TotalSuitabilityMaps/'+AllocType/Name+ '[ADomain/rnd_grid_rel]*SuitScalingFactor
+							, float32(0)
+						)
+					  )'
+					, ADomain
+					, Int32
+				);
+			attribute<AtomicRegions> AtomicRegionMap (ADomain) := AtomicRegions/UnionData[ADomain/rnd_grid_rel];
+		}
+		
+		parameter<int32> threshold := int32(-20000f * SuitScalingFactor);
+		
+		container FeasibleSolution;
+
+		container discrete_alloc := 
+			discrete_alloc(
+				  AllocType/Name
+				, Compacted/ADomain
+				, Compacted/SuitabilityMaps
+				, rlookup(RegionRefs, UniqueRegionRefs/Values)
+				, UniqueRegionRefs/Values
+				, AtomicRegions
+				, Compacted/AtomicRegionMap
+				, minclaims
+				, maxclaims
+				, threshold
+				, FeasibleSolution
+			)
+		{
+			attribute<AllocType> landuse_grid (domain_grid) := landuse[Compacted/BaseGrid];
+		}
+	}
+
+	container Results
+	{
+		container Landuse
+		{
+			attribute<AllocType>      Endogenous        (domain_grid) := casedata/discrete_alloc/landuse_grid;
+			attribute<ModelType>      Model             (domain_grid) := MakeDefined(AllocType/org_rel[Endogenous], ExogenousLand), StorageName = "='%LocalDataProjDir%/Results/LandUse_'+Scenario_name+'_'+Year_name+'.tif'";
+			
+			attribute<LU/LU_Urban>    LU_Urban          (domain_grid) := lookup(Model, LU/ModelType/LU_Urban_Rel);
+			attribute<YesorNo>        IsUrban           (domain_grid) := lookup(Model, LU/ModelType/IsUrban) ; 
+			attribute<ModelType>      IsUrban_Exp       (domain_grid) := uint8(IsUrban) ; 
+			attribute<LU/LU_FreeLand> LU_FreeLand       (domain_grid) := lookup(Model, LU/ModelType/LU_FreeLand_Rel);
+			attribute<YesorNo>        IsFreeland        (domain_grid) := lookup(Model, LU/ModelType/IsFreeLand) ;
+			attribute<YesorNo>        IsFreeland_ohneEE (domain_grid) := lookup(Model, LU/ModelType/IsFreeLand_ohneEE) ;
+			attribute<YesorNo>        IsUrban_oUG       (domain_grid) := lookup(Model, LU/ModelType/IsUrban_oUG) ; 
+			attribute<YesorNo>        IsArable          (domain_grid) := lookup(Model, LU/ModelType/IsArable) ; 
+			attribute<YesorNo>        IsPasture         (domain_grid) := lookup(Model, LU/ModelType/IsPasture) ; 
+			attribute<YesorNo>        IsAgri            (domain_grid) := lookup(Model, LU/ModelType/IsAgri) ; 
+			attribute<YesorNo>        IsGreen           (domain_grid) := lookup(Model, LU/ModelType/IsGreen) ; 
+			attribute<YesorNo>        IsPV              (domain_grid) := lookup(Model, LU/ModelType/IsPV) ; 
+			attribute<YesorNo>        IsWKA             (domain_grid) := lookup(Model, LU/ModelType/IsWKA) ;
+			attribute<YesorNo>        IsEE              (domain_grid) := lookup(Model, LU/ModelType/IsRenewable) ;
+			attribute<YesorNo>        IsUrbanWKAPV      (domain_grid) := lookup(Model, LU/ModelType/IsUrbanWKAPV) ; 
+
+			container AnderungenVorherigerZeitschritt
+			{
+				attribute<ModelType> Von                (domain_grid) := iif(Model!=Prev_LandUse, Prev_LandUse, (0 / 0)[ModelType]);
+				attribute<ModelType> Zu                 (domain_grid) := iif(Model!=Prev_LandUse, Model     , (0 / 0)[ModelType]);
+				attribute<YesorNo>   temp_origForestUG  (domain_grid) := iif(Or(present/landuse/germany == value(9, uint8), present/landuse/germany == value(9, uint8)), value(True, YesorNo), value(False, YesorNo));
+				attribute<YesorNo>   temp_modelForestUG (domain_grid) := iif(Or(Model == value(9, ModelType), Model == value(9, ModelType)), value(True, YesorNo), value(False, YesorNo));
+				attribute<float32>   Age                (domain_grid) := iif(Model!=Prev_LandUse,value(0, float32), AgeLandUse + iif(temp_modelForestUG != value(True, YesorNo), float32(PeriodDuration), iif(temp_origForestUG == value(True, YesorNo), value(0.2, float32) * float32(PeriodDuration), value(0.5, float32) * float32(PeriodDuration))));
+
+				attribute<Classifications/YesorNo>IsUrban     (domain_grid) := lookup(Model, Classifications/LU/ModelType/IsUrban);
+				attribute<Classifications/YesorNo>IsUrban_oUG (domain_grid) := lookup(Model, Classifications/LU/ModelType/IsUrban_oUG);
+				
+				attribute<Classifications/YesorNo>VonUrban (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsUrban) = True, lookup(Model, Classifications/LU/ModelType/IsUrban) = False) ; 
+				//attribute<ModelType>ZuUrban (domain_grid) := Uint8(bool(and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsUrban) = False, lookup(Model, Classifications/LU/ModelType/IsUrban) = True))) ; 
+				attribute<Classifications/YesorNo>ZuUrban (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsUrban) = False, lookup(Model, Classifications/LU/ModelType/IsUrban) = True) ; 
+				attribute<ModelType>ZuUrban_Export(domain_grid):= Uint8(ZuUrban);
+//				attribute<Classifications/YesorNo>VonUrbanFabric (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) = 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) != 'urban_fabric') ; 
+//				attribute<Classifications/YesorNo>ZuUrbanFabric (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) != 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) = 'urban_fabric') ; 
+//				attribute<ModelType>ZuUrbanFabric_Export(domain_grid):= Uint8(ZuUrbanFabric);
+				attribute<Classifications/YesorNo>VonFreeLand (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsFreeLand) = True, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = False) ; 
+				attribute<Classifications/YesorNo>ZuFreeLand (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsFreeLand) = False, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = True) ; 
+				attribute<Classifications/YesorNo>ZuUrban_oUG (domain_grid):= and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsUrban_oUG) = False, lookup(Model, Classifications/LU/ModelType/IsUrban_oUG) = True) ; 
+				attribute<Classifications/YesorNo>VonAgriculture (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsAgri) = True, lookup(Model, Classifications/LU/ModelType/IsAgri) = False) ;
+				attribute<Classifications/YesorNo>ZuAgriculture (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsAgri) = False, lookup(Model, Classifications/LU/ModelType/IsAgri) = True) ;
+				attribute<Classifications/YesorNo>VonArable (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) = 'Acker', lookup(Model, Classifications/LU/ModelType/Name) != 'Acker') ; 
+				attribute<Classifications/YesorNo>ZuArable (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) != 'Acker', lookup(Model, Classifications/LU/ModelType/Name) = 'Acker') ; 
+				attribute<Classifications/YesorNo>VonPasture (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) = 'Gruenland', lookup(Model, Classifications/LU/ModelType/Name) != 'Gruenland') ; 
+				attribute<Classifications/YesorNo>ZuPasture (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) != 'Gruenland', lookup(Model, Classifications/LU/ModelType/Name) = 'Gruenland') ; 
+
+				attribute<Classifications/YesorNo>VonPV (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) = 'FreiflaechenPV', lookup(Model, Classifications/LU/ModelType/Name) != 'FreiflaechenPV') ; 
+				attribute<Classifications/YesorNo>ZuPV (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) != 'FreiflaechenPV', lookup(Model, Classifications/LU/ModelType/Name) = 'FreiflaechenPV') ; 
+				attribute<Classifications/YesorNo>VonWKA (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) = 'Windparkflaeche', lookup(Model, Classifications/LU/ModelType/Name) != 'Windparkflaeche') ; 
+				attribute<Classifications/YesorNo>ZuWKA (domain_grid) := and(lookup(Prev_LandUse, Classifications/LU/ModelType/Name) != 'Windparkflaeche', lookup(Model, Classifications/LU/ModelType/Name) = 'Windparkflaeche') ; 
+				attribute<Classifications/YesorNo>ZuUrbanWKAPV (domain_grid):= and(lookup(Prev_LandUse, Classifications/LU/ModelType/IsUrbanWKAPV) = False, lookup(Model, Classifications/LU/ModelType/IsUrbanWKAPV) = True) ; 
+
+				parameter<Float32> PercentLossFreeLand := sum(float32(ZuUrban))/sum(float32(lookup(Prev_LandUse, Classifications/LU/ModelType/IsFreeLand)= True))* value(100, float32);
+				parameter<Float32> PercentLossFreeLand_ohneEE := sum(float32(ZuUrbanWKAPV))/sum(float32(lookup(Prev_LandUse, Classifications/LU/ModelType/IsFreeLand_ohneEE)= True))* value(100, float32);
+			}
+			
+			container AnderungenSeit2022
+			{
+				attribute<ModelType> Von(domain_grid) := iif(Model!=Present/landuse/germany, Present/landuse/germany, (0 / 0)[ModelType]);
+				attribute<ModelType> Zu(domain_grid) := iif(Model!=Present/landuse/germany, Model                  , (0 / 0)[ModelType]);
+				
+				attribute<Classifications/YesorNo>VonUrban (domain_grid) := and(present/landuse/IsUrban = True, lookup(Model, Classifications/LU/ModelType/IsUrban) = False) ; 	
+				attribute<Classifications/YesorNo>ZuUrban (domain_grid) := and(present/landuse/IsUrban = False, lookup(Model, Classifications/LU/ModelType/IsUrban) = True) ; 
+				attribute<ModelType>ZuUrban_Export(domain_grid):= Uint8(ZuUrban);
+//				attribute<Classifications/YesorNo>VonUrbanFabric (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) != 'urban_fabric') ; 
+//				attribute<Classifications/YesorNo>ZuUrbanFabric (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) = 'urban_fabric') ; 
+//				attribute<ModelType>ZuUrbanFabric_Export(domain_grid):= Uint8(ZuUrbanFabric);
+//				attribute<Classifications/YesorNo>VonIndustry (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'industrial_commercial', lookup(Model, Classifications/LU/ModelType/Name) != 'industrial_commercial') ; 
+//				attribute<Classifications/YesorNo>ZuIndustry (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'industrial_commercial', lookup(Model, Classifications/LU/ModelType/Name) = 'industrial_commercial') ; 
+//				attribute<Classifications/YesorNo>VonInfrastructure (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'infrastructure', lookup(Model, Classifications/LU/ModelType/Name) != 'infrastructure') ; 
+//				attribute<Classifications/YesorNo>ZuInfrastructure (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'infrastructure', lookup(Model, Classifications/LU/ModelType/Name) = 'infrastructure') ; 
+//				attribute<Classifications/YesorNo>VonGreenUrban (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) = 'green_urban', lookup(Model, Classifications/LU/ModelType/Name) != 'green_urban') ; 
+//				attribute<Classifications/YesorNo>ZuGreenUrban (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/Name) != 'green_urban', lookup(Model, Classifications/LU/ModelType/Name) = 'green_urban') ; 
+				attribute<Classifications/YesorNo>VonFreeLand (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/IsFreeLand) = True, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = False) ; 
+				attribute<Classifications/YesorNo>ZuFreeLand (domain_grid) := and(lookup(present/landuse/germany, Classifications/LU/ModelType/IsFreeLand) = False, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = True) ; 
+				attribute<Classifications/YesorNo>ZuUrban_oUG (domain_grid):= and(lookup(present/landuse/germany, Classifications/LU/ModelType/IsUrban_oUG) = False, lookup(Model, Classifications/LU/ModelType/IsUrban_oUG) = True) ;
+				attribute<Classifications/YesorNo>VonAgriculture (domain_grid) := and(present/landuse/IsAgri = True, lookup(Model, Classifications/LU/ModelType/IsAgri) = False) ; 	
+				attribute<Classifications/YesorNo>ZuAgriculture (domain_grid) := and(present/landuse/IsAgri = False, lookup(Model, Classifications/LU/ModelType/IsAgri) = True) ; 
+				attribute<Classifications/YesorNo>VonArable (domain_grid) := and(present/landuse/IsArable = True, lookup(Model, Classifications/LU/ModelType/IsArable) = False) ; 	
+				attribute<Classifications/YesorNo>ZuArable (domain_grid) := and(present/landuse/IsArable = False, lookup(Model, Classifications/LU/ModelType/IsArable) = True) ; 
+				attribute<Classifications/YesorNo>VonPasture (domain_grid) := and(present/landuse/IsPasture = True, lookup(Model, Classifications/LU/ModelType/IsPasture) = False) ; 	
+				attribute<Classifications/YesorNo>ZuPasture (domain_grid) := and(present/landuse/IsPasture = False, lookup(Model, Classifications/LU/ModelType/IsPasture) = True) ; 
+				attribute<Classifications/YesorNo>VonPV (domain_grid) := and(present/landuse/IsPV = True, lookup(Model, Classifications/LU/ModelType/IsPV) = False) ;
+				attribute<Classifications/YesorNo>ZuPV (domain_grid) := and(present/landuse/IsPV = False, lookup(Model, Classifications/LU/ModelType/IsPV) = True) ; 
+				attribute<Classifications/YesorNo>VonWKA (domain_grid) := and(present/landuse/IsWKA = True, lookup(Model, Classifications/LU/ModelType/IsWKA) = False) ;
+				attribute<Classifications/YesorNo>ZuWKA (domain_grid) := and(present/landuse/IsWKA = False, lookup(Model, Classifications/LU/ModelType/IsWKA) = True) ;  
+				attribute<Classifications/YesorNo>VonUrbanWKAPV (domain_grid) := and(present/landuse/IsUrbanWKAPV = True, lookup(Model, Classifications/LU/ModelType/IsUrbanWKAPV) = False) ;
+				attribute<Classifications/YesorNo>ZuUrbanWKAPV (domain_grid) := and(present/landuse/IsUrbanWKAPV = False, lookup(Model, Classifications/LU/ModelType/IsUrbanWKAPV) = True) ;  
+
+				parameter<Float32> PercentLossFreeLand := sum(float32(ZuUrban))/sum(float32(present/landuse/IsFreeLand))* value(100, float32);
+				parameter<Float32> PercentLossFreeLand_ohneEE := sum(float32(ZuUrbanWKAPV))/sum(float32(present/landuse/IsFreeLand_ohneEE))* value(100, float32);
+				
+				
+			}
+//			container AnderungenZurBaseline
+//			{
+//				attribute<ModelType> Von(domain_grid) := iif(Model!=ModelRuns/Baseline/Yr2030/results/LandUse/Model, ModelRuns/Baseline/Yr2030/results/LandUse/Model, (0 / 0)[ModelType]);
+//				attribute<ModelType> Zu(domain_grid) := iif(Model!=ModelRuns/Baseline/Yr2030/results/LandUse/Model, Model     , (0 / 0)[ModelType]);
+//				attribute<Classifications/YesorNo>VonUrban (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsUrban = True, lookup(Model, Classifications/LU/ModelType/IsUrban) = False) ; 	
+//				attribute<Classifications/YesorNo>ZuUrban (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsUrban = False, lookup(Model, Classifications/LU/ModelType/IsUrban) = True) ; 
+//				attribute<ModelType>ZuUrban_Export(domain_grid):= Uint8(ZuUrban);
+//				attribute<Classifications/YesorNo>VonUrbanFabric (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) = 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) != 'urban_fabric') ; 
+//				attribute<Classifications/YesorNo>ZuUrbanFabric (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) != 'urban_fabric', lookup(Model, Classifications/LU/ModelType/Name) = 'urban_fabric') ; 
+//				attribute<ModelType>ZuUrbanFabric_Export(domain_grid):= Uint8(ZuUrbanFabric);
+//				attribute<Classifications/YesorNo>VonIndustry (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) = 'industrial_commercial', lookup(Model, Classifications/LU/ModelType/Name) != 'industrial_commercial') ; 
+//				attribute<Classifications/YesorNo>ZuIndustry (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) != 'industrial_commercial', lookup(Model, Classifications/LU/ModelType/Name) = 'industrial_commercial') ; 
+//				attribute<Classifications/YesorNo>VonInfrastructure (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) = 'infrastructure', lookup(Model, Classifications/LU/ModelType/Name) != 'infrastructure') ; 
+//				attribute<Classifications/YesorNo>ZuInfrastructure (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) != 'infrastructure', lookup(Model, Classifications/LU/ModelType/Name) = 'infrastructure') ; 
+//				attribute<Classifications/YesorNo>VonGreenUrban (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) = 'green_urban', lookup(Model, Classifications/LU/ModelType/Name) != 'green_urban') ; 
+//				attribute<Classifications/YesorNo>ZuGreenUrban (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/Name) != 'green_urban', lookup(Model, Classifications/LU/ModelType/Name) = 'green_urban') ; 
+//				attribute<Classifications/YesorNo>VonFreeLand (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/IsFreeLand) = True, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = False) ; 
+//				attribute<Classifications/YesorNo>ZuFreeLand (domain_grid) := and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/IsFreeLand) = False, lookup(Model, Classifications/LU/ModelType/IsFreeLand) = True) ; 
+//				attribute<Classifications/YesorNo>ZuUrban_oUG (domain_grid):= and(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/Model, Classifications/LU/ModelType/IsUrban_oUG) = False, lookup(Model, Classifications/LU/ModelType/IsUrban_oUG) = True) ;
+//				attribute<Classifications/YesorNo>VonAgriculture (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsAgri = True, lookup(Model, Classifications/LU/ModelType/IsAgri) = False) ; 	
+//				attribute<Classifications/YesorNo>ZuAgriculture (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsAgri = False, lookup(Model, Classifications/LU/ModelType/IsAgri) = True) ; 
+//				attribute<Classifications/YesorNo>VonArable (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsArable = True, lookup(Model, Classifications/LU/ModelType/IsArable) = False) ; 	
+//				attribute<Classifications/YesorNo>ZuArable (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsArable = False, lookup(Model, Classifications/LU/ModelType/IsArable) = True) ; 
+//				attribute<Classifications/YesorNo>VonPasture (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsPasture = True, lookup(Model, Classifications/LU/ModelType/IsPasture) = False) ; 	
+//				attribute<Classifications/YesorNo>ZuPasture (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsPasture = False, lookup(Model, Classifications/LU/ModelType/IsPasture) = True) ; 
+//				attribute<Classifications/YesorNo>VonPV (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsPV = True, lookup(Model, Classifications/LU/ModelType/IsPV) = False) ; 
+//				attribute<Classifications/YesorNo>ZuPV (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsPV = False, lookup(Model, Classifications/LU/ModelType/IsPV) = True) ;  				
+//				attribute<Classifications/YesorNo>VonWKA (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsWKA = True, lookup(Model, Classifications/LU/ModelType/IsWKA) = False) ; 				
+//				attribute<Classifications/YesorNo>ZuWKA (domain_grid) := and(ModelRuns/Baseline/Yr2030/results/LandUse/IsWKA = False, lookup(Model, Classifications/LU/ModelType/IsWKA) = True) ;  								 
+//				
+//				parameter<Float32> PercentLossFreeLand := sum(float32(ZuUrban_oUG))/sum(float32(present/landuse/IsFreeLand))* value(100, float32);
+//			}
+			
+		#include <soilsealing.dms>
+		#include <evaluation.dms>
+		}
+		
+		container landuse_250 := Templates/BalancedClassAggr_T(domain_grid, dla_250m, ModelType, landuse/Model, dla_50m);
+	}
+}
+

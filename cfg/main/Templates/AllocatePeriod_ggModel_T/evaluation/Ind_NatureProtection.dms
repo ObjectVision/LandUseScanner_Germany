@@ -1,0 +1,260 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container Ind_NatureProtection: Descr = "A set of indicators allowing the evaluation of policies by describing their impact on nature protection areas."		
+	{
+		container Preparation: Descr = "Preparation for calculation"
+		{
+						
+			parameter<float32> Germany_NatureProtectionAll: Expr = "sum(float32(Present/policy_maps/AllNatureProtectionAreasInclLSG == value(True, YesOrNo)))",Descr="All Nature Protection Areas";
+			parameter<float32> Germany_NatureProtectionHigh: Expr = "sum(float32(Present/policy_maps/AllNatureProtectionAreasHigh == value(True, YesOrNo)))",Descr="All Nature Protection Areas with high status";
+			parameter<float32> Germany_NatureProtectionLow: Expr = "sum(float32(Present/policy_maps/AllNatureProtectionAreasLow == value(True, YesOrNo)))",Descr="All Nature Protection Areas with low status";
+			
+			
+			container NatureProtectionLayers: Descr = "Preparation for calculations with flood layers"
+			{
+				container Current: Descr = "Current status"
+				{
+					parameter <float32> CurrentUrbanAreasOnNP_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasAll)) / Germany_NatureProtectionAll * value(100,float32)";
+					
+					parameter <float32> CurrentUrbanAreasOnNPHigh_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasHigh)) / Germany_NatureProtectionHigh * value(100,float32)";
+					
+					parameter <float32> CurrentUrbanAreasOnNPLow_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasLow)) / Germany_NatureProtectionLow * value(100,float32)";
+					
+					parameter <float32> ShareCurrentUrbanAreasOnNP_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasAll)) / sum(float32(present/landuse/IsUrban)) * value(100,float32)";
+					
+					parameter <float32> ShareCurrentUrbanAreasOnNPHigh_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasHigh)) / sum(float32(present/landuse/IsUrban)) * value(100,float32)";
+					
+					parameter <float32> ShareCurrentUrbanAreasOnNPLow_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasLow)) / sum(float32(present/landuse/IsUrban)) * value(100,float32)";
+					
+					attribute <float32> NPAll_Ha (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(Present/policy_maps/AllNatureProtectionAreasInclLSG == value(True, YesOrNo)), Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> NPHigh_Ha (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(Present/policy_maps/AllNatureProtectionAreasHigh == value(True, YesOrNo)), Geography/RegionGrids/Kreise)";
+				
+					attribute <float32> NPLow_Ha (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(Present/policy_maps/AllNatureProtectionAreasLow == value(True, YesOrNo)), Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> CurrentUrbanAreasOnNPAll (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasAll)
+										, Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> CurrentUrbanAreasOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasHigh)
+										, Geography/RegionGrids/Kreise)";												
+					
+					attribute <float32> CurrentUrbanAreasOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/Current/Urban/Nature_Protection/CurrUrbanAllInNatureProtectionAreasLow)
+										, Geography/RegionGrids/Kreise)";
+				}
+				container Actual: Descr = "Actual status"
+				{
+					attribute <float32> ActualUrbanAreasOnNPAll(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/ActualUrbanInNatureProtectionAll)
+										, Geography/RegionGrids/Kreise)";	
+					
+					attribute <float32> ActualUrbanAreasOnNPHigh(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/ActualUrbanInNatureProtectionHigh)
+										, Geography/RegionGrids/Kreise)";				
+					
+					attribute <float32> ActualUrbanAreasOnNPLow(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/ActualUrbanInNatureProtectionLow)
+										, Geography/RegionGrids/Kreise)";
+				}
+				container Changes: Descr = "New urban cells"
+				{
+					parameter <float32> NewUrbanAreasOnNPAll_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasAll)) / Germany_NatureProtectionAll * value(100,float32)";
+					
+					parameter <float32> NewUrbanAreasOnNPHigh_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasHigh)) / Germany_NatureProtectionHigh * value(100,float32)";
+					
+					parameter <float32> NewUrbanAreasOnNPLow_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasLow)) / Germany_NatureProtectionLow * value(100,float32)";
+					
+					parameter <float32> ShareNewUrbanAreasOnNPAll_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasAll)) / sum(float32(results/LandUse/AnderungenSeit2022/ZuUrban)) * value(100,float32)";
+					
+					parameter <float32> ShareNewUrbanAreasOnNPHigh_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasHigh)) / sum(float32(results/LandUse/AnderungenSeit2022/ZuUrban)) * value(100,float32)";
+					
+					parameter <float32> ShareNewUrbanAreasOnNPLow_Germany: Expr = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasLow)) / sum(float32(results/LandUse/AnderungenSeit2022/ZuUrban)) * value(100,float32)";
+					
+					attribute <float32> NewUrbanAreasOnNPAll(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasAll)
+										, Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> NewUrbanAreasOnNPHigh(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasHigh)
+										, Geography/RegionGrids/Kreise)";				
+					
+					attribute <float32> NewUrbanAreasOnNPLow(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(float32(results/LandUse/evaluation/Local/UrbanDev_Areas/Nature_protection/UrbanAllInNatureProtectionAreasLow)
+										, Geography/RegionGrids/Kreise)";
+				}
+			}
+				
+			
+		}
+		container SubIndicators_NatureProtection: Descr = "Single Indicators describing impact on nature protection areas"
+		{
+			
+			container NatureProtection_Layers: Descr = "Calculations with nature protection layers"
+			{
+				container Current: Descr = "Current Status"
+				{
+					attribute <float32> CurrentUrbanAreasOnNPAll (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPAll / Preparation/NatureProtectionLayers/Current/NPAll_Ha) * value(100, float32))";
+						
+					attribute <float32> CurrentUrbanAreasOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPHigh / Preparation/NatureProtectionLayers/Current/NPHigh_Ha) * value(100, float32))";
+					
+					attribute <float32> CurrentUrbanAreasOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPLow / Preparation/NatureProtectionLayers/Current/NPLow_Ha) * value(100, float32))";
+					
+					attribute <float32> ShareCurrentUrbanAreasOnNPAll (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPAll / sum(float32(present/landuse/IsUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+			
+					attribute <float32> ShareCurrentUrbanAreasOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPHigh / sum(float32(present/landuse/IsUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+						
+					attribute <float32> ShareCurrentUrbanAreasOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPLow / sum(float32(present/landuse/IsUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+				}
+				container Actual: Descr = "Actual Status"
+				{
+					attribute <float32> ActualUrbanAreasOnNPAll (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Actual/ActualUrbanAreasOnNPAll / Preparation/NatureProtectionLayers/Current/NPAll_Ha) * value(100, float32))";
+						
+					attribute <float32> ActualUrbanAreasOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Actual/ActualUrbanAreasOnNPHigh / Preparation/NatureProtectionLayers/Current/NPHigh_Ha) * value(100, float32))";
+			
+					attribute <float32> ActualUrbanAreasOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Actual/ActualUrbanAreasOnNPLow / Preparation/NatureProtectionLayers/Current/NPLow_Ha) * value(100, float32))";
+					
+					attribute <float32> ShareActualUrbanAreasOnNPAll (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Actual/ActualUrbanAreasOnNPAll / sum(float32(present/landuse/IsUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+					
+					attribute <float32> ShareActualUrbanAreasOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Actual/ActualUrbanAreasOnNPHigh / sum(float32(present/landuse/IsUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+			
+					attribute <float32> ShareActualUrbanAreasOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Actual/ActualUrbanAreasOnNPLow / sum(float32(present/landuse/IsUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+						
+				}
+				container Changes: Descr = "New urban cells"
+				{
+					attribute <float32> NewUrbanAreasOnNPAll (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPAll / Preparation/NatureProtectionLayers/Current/NPAll_Ha) * value(100, float32))";
+			
+					attribute <float32> NewUrbanAreasOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh / Preparation/NatureProtectionLayers/Current/NPAll_Ha) * value(100, float32))";
+						
+					attribute <float32> NewUrbanAreasOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow / Preparation/NatureProtectionLayers/Current/NPAll_Ha) * value(100, float32))";
+					
+					attribute <float32> ShareNewUrbanAreasOnNPAll (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPAll / sum(float32(results/LandUse/AnderungenSeit2022/ZuUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+					
+					attribute <float32> ShareNewUrbanAreasOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh / sum(float32(results/LandUse/AnderungenSeit2022/ZuUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+					
+					attribute <float32> ShareNewUrbanAreasOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
+						,	Expr	= "float32((Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow / sum(float32(results/LandUse/AnderungenSeit2022/ZuUrban), Geography/RegionGrids/Kreise) * value(100, float32)))";
+						
+				}
+				
+				attribute <float32> Ind_HW01a_CurrUrbanOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPHigh * value(100, float32)) / Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPHigh * value(100, float32)) / Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPHigh_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPHigh * value(100, float32)) / Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPHigh_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW01b_ActualUrbanOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ActualUrbanAreasOnNPHigh * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPHigh)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ActualUrbanAreasOnNPHigh * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPHigh)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ActualUrbanAreasOnNPHigh * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPHigh), value(100, float32)))";
+				
+				attribute <float32> Ind_HW02a_CurrUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPLow * value(100, float32)) / Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPLow * value(100, float32)) / Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPLow_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPLow * value(100, float32)) / Preparation/NatureProtectionLayers/Current/CurrentUrbanAreasOnNPLow_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW02b_ActualUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPLow)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPLow)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/CurrentUrbanAreasOnNPLow), value(100, float32)))";
+									 
+				attribute <float32> Ind_HW03a_ShareCurrUrbanOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPHigh * value(100, float32)) / Preparation/NatureProtectionLayers/Current/ShareCurrentUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPHigh * value(100, float32)) / Preparation/NatureProtectionLayers/Current/ShareCurrentUrbanAreasOnNPHigh_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPHigh * value(100, float32)) / Preparation/NatureProtectionLayers/Current/ShareCurrentUrbanAreasOnNPHigh_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW03b_ShareActualUrbanOnNPHigh(Geography/RegionDomains/Kreise): IsHidden = "True"	
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPHigh * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPHigh)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPHigh * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPHigh)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPHigh * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPHigh), value(100, float32)))";
+				
+				attribute <float32> Ind_HW04a_ShareCurrUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow * value(100, float32)) / Preparation/NatureProtectionLayers/Current/ShareCurrentUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow * value(100, float32)) / Preparation/NatureProtectionLayers/Current/ShareCurrentUrbanAreasOnNPLow_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow * value(100, float32)) / Preparation/NatureProtectionLayers/Current/ShareCurrentUrbanAreasOnNPLow_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW04b_ShareActualUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"	
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow), value(100, float32)))";
+				
+				attribute <float32> Ind_HW05_NewUrbanOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW06_NewUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany), value(0, float32)))";
+									 
+				attribute <float32> Ind_HW07_ShareNewUrbanOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany), value(0, float32)))";
+				
+				attribute <float32> Ind_HW08_ShareNewUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"	
+					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany), value(0, float32)))";
+									 
+				
+				
+			}
+		
+		}
+		
+			attribute <float32> NP_R (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "(value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW01a_CurrUrbanOnNPHigh) + (value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW02a_CurrUrbanOnNPLow) + (value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW03a_ShareCurrUrbanOnNPHigh) + (value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW04a_ShareCurrUrbanOnNPLow)";				 
+			
+			//attribute <float32> HWnat_Z (Geography/RegionDomains/Kreise): IsHidden = "True"
+			//	,	Expr	= "(value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW03b_ActualUrbanOnFloodLayers) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW04b_ActualUrbanOnBothFloodLayers) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW05b_ShareActualUrbanOnFloodLayers) + (value(0.25, float32) * SubIndicators_FloodRisk/FloodLayers/Ind_HW06b_ShareActualUrbanOnBothFloodLayers)";
+			
+			attribute <float32> NP_New (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "(value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW05_NewUrbanOnNPHigh) + (value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW06_NewUrbanOnNPLow) + (value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW07_ShareNewUrbanOnNPHigh) + (value(0.25, float32) * SubIndicators_NatureProtection/NatureProtection_Layers/Ind_HW08_ShareNewUrbanOnNPLow)";
+			
+			attribute <float32> NP_Combi (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "(value(0.5, float32) * NP_R) + (value(0.5, float32) * NP_New)";
+				
+			attribute <float32> NP_DIFF_BASELINE_NEW (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "NP_New - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/NP_New";
+				
+			attribute <float32> NP_DIFF_BASELINE_COMBI (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "NP_Combi - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/NP_Combi";
+				
+	
+
+}

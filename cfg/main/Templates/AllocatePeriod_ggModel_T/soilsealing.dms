@@ -1,0 +1,92 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container soilsealing: Descr="This container contains calculations for changes in the degree of soil sealing"
+{
+	attribute <uint8> OrgSoilSealing(domain_grid): Expr =
+				"Present/LandUse/germany_soilsealing", cdf = "Classifications/Sealing/ClassBreaks";
+				
+	attribute<ModelType> OrgLanduse(domain_grid): Expr = "..../Prev_Landuse";
+				
+	attribute<ModelType> Zu(domain_grid): Expr = "results/LandUse/AnderungenVorherigerZeitschritt/Zu";
+	
+	container OrgLandUseClasses: Expr =
+			"for_each_nedv("
+				"  ModelType/Name,"
+				"' Int8(OrgLanduse == value('+String(ID(ModelType))+', ModelType))' "
+				", domain_grid, Int8"
+			")"
+		,	Descr = "Difference allocation - current landuse";
+	
+	container SumLandUseClasses: Expr =
+			"for_each_nedv("
+				"  AllocType/Name"
+				", 'sum("
+					"  Float32(OrgLandUseClasses/'+AllocType/Name+')"
+					", Geography/RegionGrids/Kreise"
+				")'"
+				", Geography/RegionDomains/Kreise"
+				", Float32"
+			")"
+		,	Descr = "Total current land use";
+		
+	container SoilSealingPerClass: Expr =
+			"for_each_nedv("
+				"  AllocType/Name,"
+				//"' iif(Int8(../orgLanduse == value('+String(ID(ModelType))+', ModelType))== Int8(1),Uint8(OrgSoilSealing),Uint8(0))' "
+				"' iif(OrgLandUseClasses/'+AllocType/Name+'== Int8(1),Uint8(OrgSoilSealing),Uint8(0))' "
+				", domain_grid, UInt8"
+			")"
+		,	Descr = "Difference allocation - current landuse";
+	
+	container SumSoilSealing: Expr =
+			"for_each_nedv("
+				"  AllocType/Name"
+				", 'sum("
+					"  Float32(SoilSealingPerClass/'+AllocType/Name+')"
+					", Geography/RegionGrids/Kreise"
+				")'"
+				", Geography/RegionDomains/Kreise"
+				", Float32"
+			")"
+		,	Descr = "Total current land use";
+	
+	container MeanSoilSealing: Expr =
+			"for_each_nedv("
+				"  AllocType/Name"
+				", 'Float32(Float32(SumSoilSealing/'+AllocType/Name+') / Float32(SumLandUseClasses/'+AllocType/Name+')"
+				")'"
+				", Geography/RegionDomains/Kreise"
+				", Float32"
+			")"
+		,	Descr = "Mean of Soil Sealing per Class";
+		
+	
+	
+	//attribute<uint32> ID_Districts (domain_grid): Expr = "Districts *uint32(present/landuse/IsUrban)";
+	//attribute<luHa>       Size      (UrbanAreas): Expr = "Float32(pcount(Districts)) * value(1, luHa)";
+	/*attribute<uint32> TempSoilSealing(domain_grid) : Expr =
+			"switch("
+				"case(Uint32(Zu) == Uint32(1), Uint32(MeanSoilSealing/urban_fabric))"
+				", uint32(0)"
+			")";*/
+	/*attribute<uint8> NewSoilSealing(domain_grid) : Expr =
+		"iif(Zu > uint8(0),"
+			"switch("
+				"case(Zu/value == 1, uint8(round(MeanSoilSealing)),OrgSoilSealing)"
+			"),"
+			",uint8(0)"
+		)";*/
+
+}

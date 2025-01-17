@@ -1,0 +1,200 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container Ind_UrbanHeat : Descr = "A set of indicators allowing the evaluation of policies by describing their impact on the thermal load in settlements."		
+{
+	container Preparation : Descr = "Preparation for calculation"
+	{
+		container Kernel
+		{
+			unit<spoint> pot500mRange := Geography/Distmatrices/pot500Range/potrange;
+		}
+		
+	   attribute <YesOrNo> CurrGreenBlue     (domain_grid) :=   present/landuse/germany == value ( 7, ModelType) || present/landuse/germany == value (10, ModelType) || present/landuse/germany == value (12, ModelType) || present/landuse/germany == value (13, ModelType);
+	   attribute <YesOrNo> SimGreenBlue     (domain_grid): IsHidden = "True",
+					Expr  = "   results/landuse/model == value ( 7, ModelType)"
+							"|| results/landuse/model == value (10, ModelType)"
+							"|| results/landuse/model == value (12, ModelType)"
+							"|| results/landuse/model == value (13, ModelType)";
+	   attribute<float32> CurrPotential500m (domain_grid): Expr = "potential(float32(CurrGreenBlue), Kernel/pot500mRange/AbsWeight)";
+	   attribute<float32> SimPotential500m  (domain_grid): Expr = "potential(float32(SimGreenBlue),  Kernel/pot500mRange/AbsWeight)";
+	   attribute<YesOrNo> CurrUrbanFabricNearGreen (domain_grid): IsHidden = "True",
+					Expr  = "	Bool(present/landuse/germany == value (1, ModelType))"
+							"&& Bool(CurrPotential500m 		 >= value (1, float32))";
+	   attribute<YesOrNo> SimUrbanFabricNearGreen (domain_grid): IsHidden = "True",
+					Expr  = "	Bool(results/landuse/model == value (1, ModelType))"
+							"&& Bool(SimPotential500m 		 >= value (1, float32))";
+							
+	   attribute<YesOrNo> NewUrbanFabricNearGreen (domain_grid): IsHidden = "True",
+					Expr  = "	Bool(results/landuse/AnderungenSeit2008/ZuUrbanFabric == value (TRUE, Bool))"
+							"&& Bool(SimPotential500m 		 >= value (1, float32))";
+		
+	}	
+	
+	container SubIndicator_UrbanHeat
+	{
+		parameter<float32> Germany_HotDaysReference: Expr = "mean(float32(Present/thematic_maps/Climate/HotDaysRef))",Descr="Mittelwert der Anzahl heiﬂer Tage im Zeitraum 2001-2010";
+		parameter<float32> Germany_HotDaysScenario:  Expr = "mean(float32(Present/thematic_maps/Climate/HotDaysScen))",Descr="Mittelwert der Anzahl heiﬂer Tage im Zeitraum 2091-2100";
+		parameter<float32> Germany_HotDaysChange:    Expr = "Germany_HotDaysScenario - Germany_HotDaysReference";
+		
+		attribute <float32> UH01_HotDaysRef (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					,	Expr    = "mean(float32(Present/thematic_maps/Climate/HotDaysRef), Geography/RegionGrids/Kreise)";
+		attribute <float32> HotDaysScen (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					,	Expr    = "mean(float32(Present/thematic_maps/Climate/HotDaysScen), Geography/RegionGrids/Kreise)";
+		attribute <float32> UH02_ChangeHotDays (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					,	Expr    = "HotDaysScen - UH01_HotDaysRef";
+		attribute <float32> RelCurrentHotDays (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "UH01_HotDaysRef / Germany_HotDaysReference";
+		attribute <float32> RelScenHotDays (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "HotDaysScen / Germany_HotDaysScenario";
+		attribute <float32> ChangeRelHotDays (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "UH02_ChangeHotDays / Germany_HotDaysChange";
+		
+		attribute <float32> Ind_UH01_CurrentHotDays (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	=	"iif((float32(RelCurrentHotDays * value(100, float32))) > value(200, float32), value(200, float32),
+								 iif((float32(RelCurrentHotDays * value(100, float32))) > value(  0, float32),
+								 float32(RelCurrentHotDays * value(100, float32)), value(0, float32)))";
+		attribute <float32> Ind_UH02_ChangeHotDays (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	=	"iif((float32(ChangeRelHotDays * value(100, float32))) > value(200, float32), value(200, float32),
+								 iif((float32(ChangeRelHotDays * value(100, float32))) > value(  0, float32),
+								 float32(ChangeRelHotDays * value(100, float32)), value(0, float32)))";
+	}
+	
+	container SubIndicator_UrbanGreen
+	{
+		parameter <float32> CurrentUrbanNearGreen_Germany: Expr = "sum(float32(Preparation/CurrUrbanFabricNearGreen)) / sum(float32(present/landuse/germany == value(1, ModelType)))";
+		parameter <float32> SimUrbanNearGreen_Germany:     Expr = "sum(float32(Preparation/SimUrbanFabricNearGreen)) / sum(float32(results/landuse/model    == value(1, ModelType)))";
+		parameter <float32> ChangeUrbanNearGreen_Germany:  Expr = "SimUrbanNearGreen_Germany - CurrentUrbanNearGreen_Germany";
+		parameter <float32> NewUrbanFabricNearGreen_Germany: Expr = "sum(float32(Preparation/NewUrbanFabricNearGreen)) / sum(float32(results/landuse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool)))";
+		parameter <float32> NewUrbanFabricNearGreen_Germany_rescale: Expr = "value(1,float32) - NewUrbanFabricNearGreen_Germany";
+		
+		attribute <float32> CurrentUrbanNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					,	Expr    = "sum(float32(Preparation/CurrUrbanFabricNearGreen), Geography/RegionGrids/Kreise) / sum(float32(present/landuse/germany == value(1, ModelType)), Geography/RegionGrids/Kreise)";
+		attribute <float32> SimUrbanNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					,	Expr    = "sum(float32(Preparation/SimUrbanFabricNearGreen), Geography/RegionGrids/Kreise) / sum(float32(results/landuse/model == value(1, ModelType)), Geography/RegionGrids/Kreise)";
+		attribute <float32> ChangeUrbanNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					,	Expr    = "SimUrbanNearGreen - CurrentUrbanNearGreen";
+		attribute <float32> UH03_NewUrbanFabricNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					,	Expr    = "sum(float32(Preparation/NewUrbanFabricNearGreen), Geography/RegionGrids/Kreise) / sum(float32(results/landuse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool)), Geography/RegionGrids/Kreise)";
+		attribute <float32> UH03_NewUrbanFabricNearGreen_rescale (Geography/RegionDomains/Kreise): IsHidden = "True" 
+					, 	Expr	= "value(-1, float32) * UH03_NewUrbanFabricNearGreen + value(1,float32)";
+		attribute <float32> RelCurrentUrbanNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "CurrentUrbanNearGreen / CurrentUrbanNearGreen_Germany";
+		attribute <float32> RelCurrentUrbanNearGreenRescale (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "value(-1, float32)*(RelCurrentUrbanNearGreen - min(RelCurrentUrbanNearGreen)) + max(RelCurrentUrbanNearGreen)";
+		attribute <float32> RelSimUrbanNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "SimUrbanNearGreen / SimUrbanNearGreen_Germany"; 
+		attribute <float32> RelSimUrbanNearGreenRescale (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "value(-1, float32)*(RelSimUrbanNearGreen - min(RelSimUrbanNearGreen)) + max(RelSimUrbanNearGreen)";
+		attribute <float32> ChangeRelUrbanNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "ChangeUrbanNearGreen / ChangeUrbanNearGreen_Germany"; 
+		attribute <float32> RelSimUrbanNearGreenBL (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "SimUrbanNearGreen / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/SimUrbanNearGreen_Germany";
+		attribute <float32> RelSimUrbanNearGreenBLRescale (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "value(-1, float32)*(RelSimUrbanNearGreenBL - min(ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/RelSimUrbanNearGreenBL)) + max(ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/RelSimUrbanNearGreenBL)";
+		attribute <float32> ChangeRelSimUrbanNearGreenBL (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/RelSimUrbanNearGreenBL - RelSimUrbanNearGreenBL";
+		
+					
+		attribute <float32> Ind_UH03_NewUrbanFabricNearGreen (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "iif((float32(UH03_NewUrbanFabricNearGreen / SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany) * value(100, float32)) > value(200, float32), value(200, float32),
+								   iif((float32(UH03_NewUrbanFabricNearGreen / SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany) * value(100, float32)) > value(  0, float32),
+									(float32(UH03_NewUrbanFabricNearGreen / SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany) * value(100, float32)), value(0, float32)))";
+									
+		attribute <float32> Ind_UH03_NewUrbanFabricNearGreen_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "iif((float32(UH03_NewUrbanFabricNearGreen / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany) * value(100, float32)) > value(200, float32), value(200, float32),
+								   iif((float32(UH03_NewUrbanFabricNearGreen / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany) * value(100, float32)) > value(  0, float32),
+									(float32(UH03_NewUrbanFabricNearGreen / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany) * value(100, float32)), value(0, float32)))";
+		
+		attribute <float32> Ind_UH03_NewUrbanFabricNearGreen_rescale (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "iif((float32(UH03_NewUrbanFabricNearGreen_rescale / SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany_rescale) * value(100, float32)) > value(200, float32), value(200, float32),
+								   iif((float32(UH03_NewUrbanFabricNearGreen_rescale / SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany_rescale) * value(100, float32)) > value(  0, float32),
+									(float32(UH03_NewUrbanFabricNearGreen_rescale / SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany_rescale) * value(100, float32)), value(0, float32)))";
+									
+		attribute <float32> Ind_UH03_NewUrbanFabricNearGreen_BL_rescale (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "iif((float32(UH03_NewUrbanFabricNearGreen_rescale / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany_rescale) * value(100, float32)) > value(200, float32), value(200, float32),
+								   iif((float32(UH03_NewUrbanFabricNearGreen_rescale / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany_rescale) * value(100, float32)) > value(  0, float32),
+									(float32(UH03_NewUrbanFabricNearGreen_rescale / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGreen/NewUrbanFabricNearGreen_Germany_rescale) * value(100, float32)), value(0, float32)))";
+					
+	}
+	
+	container SubIndicator_UrbanGrowth
+	{
+		parameter <float32> UrbanInThermalLoadAreas_Germany: Expr = "sum(float32(iif(present/landuse/germany == value(1, ModelType)"
+							" && present/thematic_maps/climate/thermalload == value(1, Int8), value(1, float32), value(0, float32))))"
+							" / sum(float32(present/landuse/germany == value(1, ModelType)))";	
+		parameter <float32> UrbanGrowthInThermalLoadAreas_Germany: Expr = "sum(float32(iif(results/landuse/evaluation/local/differencemaps/urban_fabric == value(1, Int8)"
+							" && present/thematic_maps/climate/thermalload == value(1, Int8), value(1, float32), value(0, float32))))"
+							" / sum(float32(results/landuse/AnderungenSeit2008/ZuUrbanFabric == value(1, Bool)))";
+							
+		attribute <float32> UrbanInThermalLoadAreas (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "sum(float32(iif(present/landuse/germany == value(1, ModelType)"
+								  "&& results/landuse/model == value(1, ModelType)"
+								  "&& present/thematic_maps/climate/thermalload == value(1, Int8), value(1, float32), value(0, float32))), Geography/RegionGrids/Kreise)"
+								  "/ sum(float32(present/landuse/germany == value(1, ModelType)), Geography/RegionGrids/Kreise)";
+		attribute <float32> RelUrbanInThermalLoadAreas (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "UrbanInThermalLoadAreas / UrbanInThermalLoadAreas_Germany";
+		attribute <float32> UH04_UrbanGrowthInThermalLoadAreas (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "sum(float32(iif(results/landuse/evaluation/local/differencemaps/urban_fabric == value(1, Int8)"
+								  "&& present/thematic_maps/climate/thermalload == value(1, Int8), value(1, float32), value(0, float32))), Geography/RegionGrids/Kreise)"
+								  "/ sum(float32(results/landuse/evaluation/local/differencemaps/urban_fabric == value(1, Int8)), Geography/RegionGrids/Kreise)";
+		attribute <float32> RelUrbanGrowthInThermalLoadAreas (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "UrbanGrowthInThermalLoadAreas / UrbanGrowthInThermalLoadAreas_Germany";
+		attribute <float32> RelUrbanGrowthInThermalLoadAreasBL (Geography/RegionDomains/Kreise): IsHidden = "True"
+					, 	Expr	= "UrbanGrowthInThermalLoadAreas / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGrowth/UrbanGrowthInThermalLoadAreas_Germany";
+		
+		attribute <float32> Ind_UH04_UrbanGrowthInThermalLoadAreas (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "iif((float32(UH04_UrbanGrowthInThermalLoadAreas / SubIndicator_UrbanGrowth/UrbanGrowthInThermalLoadAreas_Germany) * value(100, float32)) > value(200, float32), value(200, float32),
+								   iif((float32(UH04_UrbanGrowthInThermalLoadAreas / SubIndicator_UrbanGrowth/UrbanGrowthInThermalLoadAreas_Germany) * value(100, float32)) > value(  0, float32),
+									(float32(UH04_UrbanGrowthInThermalLoadAreas / SubIndicator_UrbanGrowth/UrbanGrowthInThermalLoadAreas_Germany) * value(100, float32)), value(0, float32)))";
+									
+		attribute <float32> Ind_UH04_UrbanGrowthInThermalLoadAreas_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "iif((float32(UH04_UrbanGrowthInThermalLoadAreas / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGrowth/UrbanGrowthInThermalLoadAreas_Germany) * value(100, float32)) > value(200, float32), value(200, float32),
+								   iif((float32(UH04_UrbanGrowthInThermalLoadAreas / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGrowth/UrbanGrowthInThermalLoadAreas_Germany) * value(100, float32)) > value(  0, float32),
+									(float32(UH04_UrbanGrowthInThermalLoadAreas / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/SubIndicator_UrbanGrowth/UrbanGrowthInThermalLoadAreas_Germany) * value(100, float32)), value(0, float32)))";		  			  
+	}
+	
+	
+	attribute <float32> Ind_UH (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "   (value(0.25, float32) * SubIndicator_UrbanHeat/Ind_UH01_CurrentHotDays)"
+						  " + (value(0.25, float32) * SubIndicator_UrbanHeat/Ind_UH02_ChangeHotDays)"
+						  " + (value(0.25, float32) * SubIndicator_UrbanGreen/Ind_UH03_NewUrbanFabricNearGreen_rescale)"
+						  " + (value(0.25, float32) * SubIndicator_UrbanGrowth/Ind_UH04_UrbanGrowthInThermalLoadAreas)";
+	
+   attribute <float32> Ind_UH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "   (value(0.25, float32) * SubIndicator_UrbanHeat/Ind_UH01_CurrentHotDays)"
+						  " + (value(0.25, float32) * SubIndicator_UrbanHeat/Ind_UH02_ChangeHotDays)"
+						  " + (value(0.25, float32) * SubIndicator_UrbanGreen/Ind_UH03_NewUrbanFabricNearGreen_BL_rescale)"
+						  " + (value(0.25, float32) * SubIndicator_UrbanGrowth/Ind_UH04_UrbanGrowthInThermalLoadAreas_BL)";			 
+		
+	attribute <float32> Ind_UH_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr 	= "Ind_UH_BL - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/Ind_UH";
+			
+	attribute <float32> IND_UH_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+		,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/Ind_UH + Ind_UH_DIFF_BL";
+			
+	attribute <float32> Ind_UH_red (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "   (value(0.5, float32) * SubIndicator_UrbanGreen/Ind_UH03_NewUrbanFabricNearGreen_rescale)"
+						  " + (value(0.5, float32) * SubIndicator_UrbanGrowth/Ind_UH04_UrbanGrowthInThermalLoadAreas)";
+	
+   attribute <float32> Ind_UH_red_BL(Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "   (value(0.5, float32) * SubIndicator_UrbanGreen/Ind_UH03_NewUrbanFabricNearGreen_BL_rescale)"
+						  " + (value(0.5, float32) * SubIndicator_UrbanGrowth/Ind_UH04_UrbanGrowthInThermalLoadAreas_BL)";			 
+		
+	attribute <float32> Ind_UH_red_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr 	= "Ind_UH_red_BL - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/Ind_UH_red";
+			
+	attribute <float32> IND_UH_red_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+		,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_UrbanHeat/Ind_UH_red + Ind_UH_red_DIFF_BL";
+}

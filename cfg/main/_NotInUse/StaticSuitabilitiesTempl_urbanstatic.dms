@@ -1,0 +1,499 @@
+container StaticSuitabilityTempl: Using = "Units;Geography", IsTemplate = "True", IsHidden = "True"
+{
+	// Begin CaseParameters
+	
+	unit<SPoint> domain_grid: Expr = "Geography/dla_100m";
+
+	// end of obligatory CaseParameters
+	
+	container Present: Expr = "PresentTempl(domain_grid)";
+	
+	parameter<Float32> UrbanDensificationParameter: Expr= "0.0[Float32]";
+	
+	parameter<Jahr> StartYear: Expr = "2009[Jahr]";
+	parameter<Jahr> FinalYear: Expr = "2015[Jahr]";
+	
+	// end of optional CaseParameters
+		
+	attribute<euro_m2_jahrlich> urban_fabric (domain_grid): expr = 
+        //Current Land Use
+        "	(Present/landuse/germany == uint8(1) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "	
+		//Thematic Maps
+		" + (0.010 [euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Railway_Station, value (45 ,minutes )), float32(45.0), float32(0.0))))" 
+		" + (0.002 [euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Central_City, value (60 ,minutes )), float32(60.0), float32(0.0))))"
+		" + (0.003 [euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Motorway, value (45 ,minutes )), float32(45.0), float32(0.0))))"
+		" + switch ("
+				  "  case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsRegional < 100[Meter], 1.591 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >= 100[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsRegional < 400[Meter], 0.922 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >= 400[Meter], 0[euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" + switch ("
+				  "  case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 100[Meter], 5.483 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 100[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 400[Meter], 2.317 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 400[Meter], 0[euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" + switch ("
+				  "  case(Present/thematic_maps/NatureLandscape/Altitude <    0[Meter], -0.980[euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=   0[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 750[Meter], 0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 750[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1000[Meter], -0.781 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1000[Meter], -0.980 [euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" +  switch ("
+       			  "  case(Present/thematic_maps/NatureLandscape/Slope <   8[degrees],    0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  8[degrees] &&  Present/thematic_maps/NatureLandscape/Slope <  15[degrees], -0.385 [euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/NatureLandscape/Slope >= 15[degrees], -0.828 [euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+		" + (1.857[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Residential/UrbanAttractivity, value (1.8, indexValue )), float32(0.0), float32(1.8))))" 
+        //Policy Maps
+       " + (Present/policy_maps/nature_reserves == uint2(1) ?  -0.262[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/national_parks == uint2(1) ?  -0.262[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ffh == uint2(1) ? -0.744[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/spa == uint2(1) ? -0.744[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(1) ? -0.262[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(2) ? -0.798[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/lsg == uint2(1) ? -0.798[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/military_training_areas == uint2(1) ? -1.684[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //Restriction Maps
+	    " + (Present/restriction_maps/buffer_wea == uint2(1) ? -1.449[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/restriction_maps/freileitungen == uint2(1) ? -0.917[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/restriction_maps/friedhoefe == uint2(1) ? -1.495[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/restriction_maps/rieselfelder == uint2(1) ? -1.495[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Nature protection
+	    " + (Present/policy_maps/ramsar == uint2(1) ? -0.3[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_development == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //ROPLAMO
+	    " + (Present/policy_maps/flood_protection == uint2(1) ? -0.75[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/flood_protection == uint2(2) ? -1.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/mineral_planning == uint2(1) ? -0.75[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/mineral_planning == uint2(2) ? -1.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(2) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ground_surface_water == uint2(1) ? -0.1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ground_surface_water == uint2(2) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/soil_protection == uint2(1) ? -0.25[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/soil_protection == uint2(2) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/open_space == uint2(1) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/residential == uint2(1) && Present/landuse/germany != uint8(1) ? 2.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/residential == uint2(1) && Present/landuse/germany == uint8(1) ? 1.25[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/settlement == uint2(1) && Present/landuse/germany != uint8(1) ? 2.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	     " + (Present/policy_maps/settlement == uint2(1) && Present/landuse/germany == uint8(1) ? 1.25[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/noise_protection == uint2(1) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/noise_protection == uint2(2) ? -1.0[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+	
+	attribute<euro_m2_jahrlich> industrial_commercial (domain_grid): expr = 
+	    //Current Land Use
+		"	(Present/landuse/germany == uint8(2) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //Thematic Maps
+		" + (0.016 [euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Railway_Station, value (45 ,minutes )), float32(45.0), float32(0.0))))"
+		" + (0.008 [euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Central_City, value (60 ,minutes )), float32(60.0), float32(0.0))))"
+		" + (0.05 [euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Airport, value (45 ,minutes )), float32(45.0), float32(0.0))))"
+		" + (Present/thematic_maps/Accessibility/Accessibility_Motorway < 5[minutes] ? 0.542[euro_m2_jahrlich] : 0[euro_m2_jahrlich])"
+		" + switch ("
+				  "  case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsRegional < 100[Meter], 0.353 [euro_m2_jahrlich])"	//Werte nicht aus log. Reg., da Straßen zu dominant.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >= 100[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsRegional < 400[Meter], 0.201 [euro_m2_jahrlich])" //alle anderen Gewichte hätten im Vergleich zu Straßen kaum messbaren Einfluss mehr.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >= 400[Meter], 0[euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" + switch ("
+				  "  case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 100[Meter], 2.498 [euro_m2_jahrlich])"	//Werte nicht aus log. Reg., da Straßen zu dominant.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 100[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 400[Meter], 1.299 [euro_m2_jahrlich])" //alle anderen Gewichte hätten im Vergleich zu Straßen kaum messbaren Einfluss mehr.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 400[Meter], 0[euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" + switch ("
+				  "  case(Present/thematic_maps/NatureLandscape/Altitude <    0[Meter], -2.215[euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=   0[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 750[Meter], 0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 750[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1000[Meter], -0.912 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1000[Meter], -2.215 [euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" +  switch ("
+       			  "  case(Present/thematic_maps/NatureLandscape/Slope <   8[degrees],    0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  8[degrees] &&  Present/thematic_maps/NatureLandscape/Slope <  15[degrees], -1.382 [euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/NatureLandscape/Slope >= 15[degrees], -2.663[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+      	" + (2.201[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Residential/UrbanAttractivity, value (1.8, indexValue )), float32(0.0), float32(1.8))))" //Gewicht aus Regression sehr hoch, daher halbiert
+        //Policy Maps
+        " + (Present/policy_maps/nature_reserves == uint2(1) ?  -0.566[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/national_parks == uint2(1) ?  -0.566[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ffh == uint2(1) ? -1.355[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/spa == uint2(1) ? -1.355[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(1) ? -0.566[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(2) ? -1.625[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/lsg == uint2(1) ? -1.625[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/military_training_areas == uint2(1) ? -2.211[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //Restriction Maps
+	    " + (Present/restriction_maps/friedhoefe == uint2(1) ? -2.211[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/restriction_maps/rieselfelder == uint2(1) ? -2.211[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Nature protection
+	    " + (Present/policy_maps/ramsar == uint2(1) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_development == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //ROPLAMO
+	    " + (Present/policy_maps/flood_protection == uint2(1) ? -0.75[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/flood_protection == uint2(2) ? -1.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/mineral_planning == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/mineral_planning == uint2(2) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(2) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/forestry == uint2(1) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/forestry == uint2(2) ? -1.0[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/soil_protection == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/soil_protection == uint2(2) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/open_space == uint2(1) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/industry_commercial == uint2(1) && Present/landuse/germany != uint8(2) ? 1.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/industry_commercial == uint2(2) && Present/landuse/germany != uint8(2) ? 3[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/industry_commercial == uint2(1) && Present/landuse/germany == uint8(2) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/industry_commercial == uint2(2) && Present/landuse/germany == uint8(2) ? 2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/retail == uint2(1) && Present/landuse/germany != uint8(2) ? 1.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/retail == uint2(2) && Present/landuse/germany != uint8(2) ? 3[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/retail == uint2(1) && Present/landuse/germany == uint8(2) ? 0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/retail == uint2(2) && Present/landuse/germany == uint8(2) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //Restriction
+	    " + (Present/restriction_maps/buffer_wea == uint2(1) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+	        
+    attribute<euro_m2_jahrlich> infrastructure (domain_grid): expr = 
+ 		//Current Land Use
+		"	(Present/landuse/germany == uint8(3) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //Thematic Maps
+        " + (0.017[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Motorway, value (30 ,minutes )), float32(30.0), float32(0.0))))"
+        " + (0.004[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Airport, value (30 ,minutes )), float32(30.0), float32(0.0))))"
+        " + switch ("
+				  "  case(Present/thematic_maps/Accessibility/Distance_Roads >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_Roads < 100[Meter], 0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/Accessibility/Distance_Roads >= 100[Meter] && Present/thematic_maps/Accessibility/Distance_Roads < 200[Meter], -0.480 [euro_m2_jahrlich])" 
+				  ", case(Present/thematic_maps/Accessibility/Distance_Roads >= 200[Meter], -0.270[euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+        " + switch ("
+				  "  case(Present/thematic_maps/NatureLandscape/Altitude <    0[Meter], -0.865[euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=   0[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 750[Meter], 0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 750[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1000[Meter], -1.016 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1000[Meter], -0.865 [euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+	   " + (-0.518[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/NatureLandscape/Slope, value (65.7626495, degrees )), float32(0.0), float32(65.7626495))))" 
+		" + (2.233[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Residential/UrbanAttractivity, value (1.8, indexValue )), float32(0.0), float32(1.8))))" 
+        //Policy Maps
+        " + (Present/policy_maps/nature_reserves == uint2(1) ?  -0.516[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/national_parks == uint2(1) ?  -0.516[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ffh == uint2(1) ? -0.516[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/spa == uint2(1) ? -0.516[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(1) ? -0.516[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(2) ? -1.449[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/lsg == uint2(1) ? -1.449[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/restriction_maps/friedhoefe == uint2(1) ? -1.449[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/restriction_maps/rieselfelder == uint2(1) ? -1.449[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        //--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Nature protection
+	    " + (Present/policy_maps/ramsar == uint2(1) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_development == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //ROPLAMO
+	    " + (Present/policy_maps/flood_protection == uint2(1) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/flood_protection == uint2(2) ? -1.0[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/mineral_planning == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/mineral_planning == uint2(2) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(2) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ground_surface_water == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ground_surface_water == uint2(2) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/soil_protection == uint2(1) ? -0.2[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/soil_protection == uint2(2) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/open_space == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //Preference
+	    " + (Present/preference_maps/pref_infrastructure_construction == uint2(1) ? 5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+	
+	attribute<euro_m2_jahrlich> construction (domain_grid): expr = "const(0[euro_m2_jahrlich], domain_grid)";
+	
+	attribute<euro_m2_jahrlich> brownfields (domain_grid): expr = 
+		//Current Land Use
+		"	(Present/landuse/germany == uint8(6) ? 10[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+	
+	attribute<euro_m2_jahrlich> green_urban (domain_grid): expr = 
+		//Current Land Use
+		"	(Present/landuse/germany == uint8(7) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //Thematic Maps
+		" + (0.010[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Railway_Station, value (25 ,minutes )), float32(25.0), float32(0.0))))"
+        " + (0.019[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Accessibility/Accessibility_Central_City, value (25 ,minutes )), float32(25.0), float32(0.0))))"
+        " + switch ("
+					  "  case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsRegional < 100[Meter], -0.608 [euro_m2_jahrlich])"	
+					  ", case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >= 100[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsRegional < 400[Meter],  0.027 [euro_m2_jahrlich])" 
+					  ", case(Present/thematic_maps/Accessibility/Distance_RoadsRegional >= 400[Meter], 0[euro_m2_jahrlich])"
+					  ", 0[euro_m2_jahrlich]"
+		")"
+		" + switch ("
+					  "  case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 100[Meter], 0.971 [euro_m2_jahrlich])"	
+					  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 100[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 400[Meter], 0.732 [euro_m2_jahrlich])" 
+					  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 400[Meter], 0[euro_m2_jahrlich])"
+					  ", 0[euro_m2_jahrlich]"
+		")"
+       " +  switch ("
+       			  "  case(Present/thematic_maps/NatureLandscape/Slope <   8[degrees],    0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  8[degrees] &&  Present/thematic_maps/NatureLandscape/Slope <  15[degrees], -0.487 [euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/NatureLandscape/Slope >= 15[degrees], -1.584[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+      	" +  switch ("
+       			  "  case(Present/thematic_maps/Residential/Population_Numbers >=  0[Population] && Present/thematic_maps/Residential/Population_Numbers <  5[Population],     0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >=  5[Population] && Present/thematic_maps/Residential/Population_Numbers < 20[Population], 0.784[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 20[Population] && Present/thematic_maps/Residential/Population_Numbers < 50[Population], 1.135[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 50[Population] && Present/thematic_maps/Residential/Population_Numbers <200[Population], 1.213[euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/Residential/Population_Numbers >= 200[Population], -0.074[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+		" + (3.120[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Residential/UrbanAttractivity, value (1.8, indexValue )), float32(0.0), float32(1.8))))" 
+        //Policy Maps
+        " + (Present/policy_maps/nature_reserves == uint2(1) ? -0.436[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/national_parks == uint2(1) ?  -0.436[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/ffh == uint2(1) ?  -0.436[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/spa == uint2(1) ?  -0.436[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(1) ? -0.436[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Nature protection
+	    " + (Present/policy_maps/ramsar == uint2(1) ?  -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(2) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/military_training_areas == uint2(1) ? -0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) " 
+	    //ROPLAMO
+	    " + (Present/policy_maps/agriculture == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/agriculture == uint2(2) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? 0.8 [euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/forestry == uint2(1) ? -0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/forestry == uint2(2) ? -0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/sports == uint2(1) && Present/landuse/germany != uint8(7) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/sports == uint2(1) && Present/landuse/germany == uint8(7) ? 0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+    	//Restrictions
+	    " + (Present/restriction_maps/rieselfelder == uint2(1) ? -1.0[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+    	
+	attribute<euro_m2_jahrlich> arable (domain_grid): expr =
+	    //Current Land Use 
+	 	"	(Present/landuse/germany == uint8(8) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "	
+	 																								
+		//Thematic Maps
+		" + switch ("
+				  "  case(Present/thematic_maps/NatureLandscape/Altitude <    0[Meter], -1.304[euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=   0[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 750[Meter], 0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 750[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1000[Meter], -2.070 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1000[Meter], -1.304 [euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" +  switch ("
+       			  "  case(Present/thematic_maps/NatureLandscape/Slope <   3[degrees],    0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  3[degrees] &&  Present/thematic_maps/NatureLandscape/Slope <  8[degrees], -0.733 [euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  8[degrees] &&  Present/thematic_maps/NatureLandscape/Slope < 15[degrees], -1.852 [euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/NatureLandscape/Slope >= 15[degrees], -3.118[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+      	" +  switch ("
+       			  "  case(Present/thematic_maps/Residential/Population_Numbers >=  0[Population] && Present/thematic_maps/Residential/Population_Numbers <  5[Population],     0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >=  5[Population] && Present/thematic_maps/Residential/Population_Numbers < 20[Population], 0.362[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 20[Population] && Present/thematic_maps/Residential/Population_Numbers < 50[Population],-0.065[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 50[Population] && Present/thematic_maps/Residential/Population_Numbers <200[Population],-1.330[euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/Residential/Population_Numbers >= 200[Population], -3.405[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+		" + (-0.604[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Residential/UrbanAttractivity, value (1.8, indexValue )), float32(0.0), float32(1.8))))" 
+       	//Policy Maps
+		" + (Present/policy_maps/nature_reserves == uint2(1) ? -1.250[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/national_parks == uint2(1) ? -1.250[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+       	" + (Present/policy_maps/ffh == uint2(1) ? -0.766[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/spa == uint2(1) ? -0.766[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/biosphere_reserves_core == uint2(2) ? -1.250[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/lsg == uint2(1) ? -0.642[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/military_training_areas == uint2(1) ? -2.742[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		//Restriction Maps
+		" + (Present/restriction_maps/friedhoefe == uint2(1) ? -1.250[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/restriction_maps/rieselfelder == uint2(1) ? -1.250[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) " 
+		//--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Nature protection
+		" + (Present/policy_maps/ramsar == uint2(1) ? -0.1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		//ROPLAMO
+		" + (Present/policy_maps/agriculture == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/agriculture == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/open_space == uint2(1) ? 0.6[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+    	
+	attribute<euro_m2_jahrlich> pasture (domain_grid): expr =
+		//Current Land Use 
+		"	(Present/landuse/germany == uint8(9) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "																									
+		//Thematic Maps
+		" + switch ("
+				  "  case(Present/thematic_maps/NatureLandscape/Altitude <    0[Meter], -0.187[euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=   0[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 300[Meter],     0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 300[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 600[Meter], 0.046 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 600[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 800[Meter], 0.843 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 800[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1400[Meter],-0.187 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1400[Meter], 2.535 [euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" +  switch ("
+       			  "  case(Present/thematic_maps/NatureLandscape/Slope <   3[degrees],    0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  3[degrees] &&  Present/thematic_maps/NatureLandscape/Slope <  8[degrees], -0.033 [euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  8[degrees] &&  Present/thematic_maps/NatureLandscape/Slope < 15[degrees], -0.198 [euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/NatureLandscape/Slope >= 15[degrees], -1.277[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+      	" +  switch ("
+       			  "  case(Present/thematic_maps/Residential/Population_Numbers >=  0[Population] && Present/thematic_maps/Residential/Population_Numbers <  5[Population],     0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >=  5[Population] && Present/thematic_maps/Residential/Population_Numbers < 20[Population], 0.638[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 20[Population] && Present/thematic_maps/Residential/Population_Numbers < 50[Population],-0.557[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 50[Population] && Present/thematic_maps/Residential/Population_Numbers <200[Population],-0.401[euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/Residential/Population_Numbers >= 200[Population], -2.869[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+		" + (-0.421[euro_m2_jahrlich] * (rescale(min_elem( Present/thematic_maps/Residential/UrbanAttractivity, value (1.8, indexValue )), float32(0.0), float32(1.8))))" //Gewicht aus Regression sehr hoch, daher halbiert
+    	//Policy Maps
+		" + (Present/policy_maps/nature_reserves == uint2(1) ? 0.234[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/national_parks == uint2(1) ? 0.234[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+       	" + (Present/policy_maps/ffh == uint2(1) ? 0.206[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/spa == uint2(1) ? 0.206[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/ramsar == uint2(1) ? 0.446[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/biosphere_reserves_core == uint2(1) ? 0.234[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/lsg == uint2(1) ? 0.063[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		" + (Present/policy_maps/military_training_areas == uint2(1) ? -1.777[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		//Restriction Maps
+		" + (Present/restriction_maps/friedhoefe == uint2(1) ? -1.777[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		//--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //ROPLAMO
+		" + (Present/policy_maps/agriculture == uint2(1) ?  0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/agriculture == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/open_space == uint2(1) ? 0.6[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+
+	attribute<euro_m2_jahrlich> forest (domain_grid): expr = 
+		//Current Land Use
+		"	(Present/landuse/germany == uint8(10) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		//Thematic Maps
+		" + switch ("
+				  "  case(Present/thematic_maps/NatureLandscape/Altitude <    0[Meter], -5.357[euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=   0[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 300[Meter],     0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 300[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 600[Meter], 0.578 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 600[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 800[Meter], 0.951 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 800[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1400[Meter], 0.972 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1400[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1800[Meter],-2.687 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1800[Meter], -5.357 [euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" +  switch ("
+       			  "  case(Present/thematic_maps/NatureLandscape/Slope <   3[degrees],    0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  3[degrees] &&  Present/thematic_maps/NatureLandscape/Slope <  8[degrees], 0.859 [euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  8[degrees] &&  Present/thematic_maps/NatureLandscape/Slope < 15[degrees], 1.920 [euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/NatureLandscape/Slope >= 15[degrees], 2.930[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+      	" +  switch ("
+       			  "  case(Present/thematic_maps/Residential/Population_Numbers >=  0[Population] && Present/thematic_maps/Residential/Population_Numbers <  5[Population],     0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >=  5[Population] && Present/thematic_maps/Residential/Population_Numbers < 20[Population],-1.017[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 20[Population] && Present/thematic_maps/Residential/Population_Numbers < 50[Population],-1.156[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 50[Population] && Present/thematic_maps/Residential/Population_Numbers <200[Population],-1.712[euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/Residential/Population_Numbers >= 200[Population], -3.076[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+	    " + switch ("
+				  "  case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 200[Meter],     0 [euro_m2_jahrlich])"	//Werte nicht aus log. Reg., da Straßen zu dominant.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 200[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 800[Meter], 0.497 [euro_m2_jahrlich])" //alle anderen Gewichte hätten im Vergleich zu Straßen kaum messbaren Einfluss mehr.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 400[Meter], 1.446[euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		//Policy Maps
+		" + (Present/policy_maps/nature_reserves == uint2(1) ?  0.396[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/national_parks == uint2(1) ?  0.396[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ffh == uint2(1) ? 0.251[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/spa == uint2(1) ? 0.251[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(1) ? 0.396[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/lsg == uint2(1) ? 0.837[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/military_training_areas == uint2(1) ? 1.278[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //ROPLAMO
+		" + (Present/policy_maps/green_corridor == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/forestry == uint2(1) ? 0.5[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/forestry == uint2(2) ? 1.0[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+    	//Restriction Maps
+		" + (Present/restriction_maps/rieselfelder == uint2(1) ? -1.0[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+
+	attribute<euro_m2_jahrlich> naturalland (domain_grid): expr = //Basis der Eignungskarten aus dem Wald kopiert, einige Werte angepasst. Diese sind gesondert markiert
+		//Current Land Use
+		"	(Present/landuse/germany == uint8(11) ? 1[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+		//Thematic Maps
+		" + switch ("
+				  "  case(Present/thematic_maps/NatureLandscape/Altitude <    0[Meter], 0.234[euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=   0[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 300[Meter],     0 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 300[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 600[Meter], 0.463 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 600[Meter] && Present/thematic_maps/NatureLandscape/Altitude < 800[Meter], 0.679 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >= 800[Meter] && Present/thematic_maps/NatureLandscape/Altitude <1400[Meter], 1.704 [euro_m2_jahrlich])"
+				  ", case(Present/thematic_maps/NatureLandscape/Altitude >=1400[Meter], 4.623 [euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		" +  switch ("
+       			  "  case(Present/thematic_maps/NatureLandscape/Slope <   3[degrees],    0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  3[degrees] &&  Present/thematic_maps/NatureLandscape/Slope <  8[degrees], -0.096 [euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/NatureLandscape/Slope >=  8[degrees] &&  Present/thematic_maps/NatureLandscape/Slope < 15[degrees], -0.513 [euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/NatureLandscape/Slope >= 15[degrees], -0.192[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+      	" +  switch ("
+       			  "  case(Present/thematic_maps/Residential/Population_Numbers >=  0[Population] && Present/thematic_maps/Residential/Population_Numbers <  5[Population],     0[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >=  5[Population] && Present/thematic_maps/Residential/Population_Numbers < 20[Population],-0.552[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 20[Population] && Present/thematic_maps/Residential/Population_Numbers < 50[Population],-0.478[euro_m2_jahrlich])"
+      			  ", case(Present/thematic_maps/Residential/Population_Numbers >= 50[Population] && Present/thematic_maps/Residential/Population_Numbers <200[Population],-1.110[euro_m2_jahrlich])"
+      		      ", case(Present/thematic_maps/Residential/Population_Numbers >= 200[Population], -1.060[euro_m2_jahrlich])"
+      			  ", 0[euro_m2_jahrlich]"
+      	")"
+	    " + switch ("
+				  "  case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >=   0[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 200[Meter],     0 [euro_m2_jahrlich])"	//Werte nicht aus log. Reg., da Straßen zu dominant.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 200[Meter] && Present/thematic_maps/Accessibility/Distance_RoadsLocal < 800[Meter], 0.288 [euro_m2_jahrlich])" //alle anderen Gewichte hätten im Vergleich zu Straßen kaum messbaren Einfluss mehr.
+				  ", case(Present/thematic_maps/Accessibility/Distance_RoadsLocal >= 400[Meter], 1.073[euro_m2_jahrlich])"
+				  ", 0[euro_m2_jahrlich]"
+		")"
+		//Policy Maps
+		" + (Present/policy_maps/nature_reserves == uint2(1) ?  1.058[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+        " + (Present/policy_maps/national_parks == uint2(1) ?  1.507[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ffh == uint2(1) ? 0.831[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/spa == uint2(1) ? 0.279[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/ramsar == uint2(1) ? 0.846[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/biosphere_reserves_core == uint2(1) ? 1.058[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/lsg == uint2(1) ? -0.156[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/military_training_areas == uint2(1) ? 3.452[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //Not used in log. regression, but because of relevance for future land use added with manually adjusted coefficients
+	    //--------------------------------------------------------------------------------------------------------------------
+	    //ROPLAMO
+		" + (Present/policy_maps/green_corridor == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/green_corridor == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/nature_landscape == uint2(2) ? 0.8[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) "
+	    " + (Present/policy_maps/open_space == uint2(1) ? 0.4[euro_m2_jahrlich] : 0[euro_m2_jahrlich]) ";
+		
+
+}
+

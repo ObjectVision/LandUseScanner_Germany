@@ -1,0 +1,132 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container Ind_PublicTransport: Descr = "A set of indicators allowing the evaluation of the accessibility of new settlements by public transport."		
+	{
+		container Preparation: Descr = "Preparation for calculation"
+		{
+						
+			parameter<float32> Germany_PublicTransport: Expr = "mean(float32(Present/thematic_maps/Accessibility/Accessibility_Middle_City_PT))",Descr="Mean traveling time to middle cities by public transport";
+			
+			
+			container PublicTransportLayers: Descr = "Preparation for calculations with public transport data"
+			{
+				container Current: Descr = "Current status"
+				{
+					parameter <float32> CurrentUrbanPT_Germany: Expr = "sum(iif(present/landuse/germany <= value(2, uint8),float32(Present/thematic_maps/Accessibility/Accessibility_Middle_City_PT),float32(0))) / sum(float32(present/landuse/germany <= value(2, uint8)))";
+					parameter <float32> CurrentUrbanBufferPT_Germany: Expr = "sum(iif(present/landuse/germany <= value(2, uint8) && present/thematic_maps/accessibility/distance_pt_station > value(0,uint8),float32(1),float32(0))) / sum(float32(present/landuse/germany <= value(2, uint8)))";
+					
+					attribute <float32> CurrentUrbanPT (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(iif(present/landuse/germany <= value(2, uint8),float32(Present/thematic_maps/Accessibility/Accessibility_Middle_City_PT),float32(0))
+										, Geography/RegionGrids/Kreise) / sum(float32(present/landuse/germany <= value(2, uint8)), Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> CurrentUrbanBufferPT (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(iif(present/landuse/germany <= value(2, uint8) && present/thematic_maps/accessibility/distance_pt_station > value(0,uint8),float32(1),float32(0))
+										, Geography/RegionGrids/Kreise) / sum(float32(present/landuse/germany <= value(2, uint8)), Geography/RegionGrids/Kreise)";
+											
+				}
+				container Actual: Descr = "Actual status"
+				{
+					parameter <float32> ActualUrbanPT_Germany: Expr = "sum(iif(results/landuse/model <= value(2, uint8),float32(Present/thematic_maps/Accessibility/Accessibility_Middle_City_PT),float32(0))) / sum(float32(results/landuse/model <= value(2, uint8)))";
+					parameter <float32> ActualUrbanBufferPT_Germany: Expr = "sum(iif(results/landuse/model <= value(2, uint8) && present/thematic_maps/accessibility/distance_pt_station > value(0,uint8),float32(1),float32(0))) / sum(float32(results/landuse/model <= value(2, uint8)))";
+					
+					attribute <float32> ActualUrbanPT (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(iif(results/landuse/model <= value(2, uint8),float32(Present/thematic_maps/Accessibility/Accessibility_Middle_City_PT),float32(0))
+										, Geography/RegionGrids/Kreise) / sum(float32(results/landuse/model <= value(2, uint8)), Geography/RegionGrids/Kreise)";
+					
+					attribute <float32> ActualUrbanBufferPT (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(iif(results/landuse/model <= value(2, uint8) && present/thematic_maps/accessibility/distance_pt_station > value(0,uint8),float32(1),float32(0))
+										, Geography/RegionGrids/Kreise) / sum(float32(results/landuse/model <= value(2, uint8)), Geography/RegionGrids/Kreise)";
+					
+				}
+				container Changes: Descr = "New urban areas"
+				{
+					parameter <float32> NewUrbanPT_Germany: Expr = "sum(iif(results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool),float32(Present/thematic_maps/Accessibility/Accessibility_Middle_City_PT),float32(0))) / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool)))";
+					parameter <float32> NewUrbanBufferPT_Germany: Expr = "sum(iif((results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool)) && present/thematic_maps/accessibility/distance_pt_station > value(0,uint8),float32(1),float32(0))) / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool)))";
+					
+					attribute <float32> VE01_NewUrbanPT(Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(iif(results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool),float32(Present/thematic_maps/Accessibility/Accessibility_Middle_City_PT),float32(0))
+										, Geography/RegionGrids/Kreise) / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool)), Geography/RegionGrids/Kreise)";
+										
+					attribute <float32> VE02_NewUrbanBufferPT (Geography/RegionDomains/Kreise): IsHidden = "True" 
+						,	Expr     = "sum(iif((results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool)) && present/thematic_maps/accessibility/distance_pt_station > value(0,uint8),float32(1),float32(0))
+										, Geography/RegionGrids/Kreise) / sum(float32(results/LandUse/AnderungenSeit2008/ZuUrbanFabric == value(TRUE, Bool) || results/LandUse/AnderungenSeit2008/ZuIndustry == value(TRUE, Bool)), Geography/RegionGrids/Kreise)";
+				}
+			}
+				
+			
+		}
+		container SubIndicators_PublicTransport: Descr = "Single Indicators describing impact on accessibility of new settlements by public transport"
+		{
+			
+
+			attribute <float32> CurrentUrbanPT_rel (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Current/CurrentUrbanPT / Preparation/PublicTransportLayers/Current/CurrentUrbanPT_Germany) * value(100, float32))";
+			
+			attribute <float32> CurrentUrbanBufferPT_rel (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Current/CurrentUrbanBufferPT / Preparation/PublicTransportLayers/Current/CurrentUrbanBufferPT_Germany) * value(100, float32))";					
+
+			attribute <float32> ActualUrbanPT_rel (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Actual/ActualUrbanPT / Preparation/PublicTransportLayers/Current/CurrentUrbanPT_Germany) * value(100, float32))";
+			
+			attribute <float32> ActualUrbanBufferPT_rel (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Actual/ActualUrbanBufferPT / Preparation/PublicTransportLayers/Current/CurrentUrbanBufferPT_Germany) * value(100, float32))";			
+
+			attribute <float32> NewUrbanPT_rel_statusquo (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Changes/NewUrbanPT / Preparation/PublicTransportLayers/Current/CurrentUrbanPT_Germany) * value(100, float32))";
+			
+			attribute <float32> NewUrbanBufferPT_rel_statusquo (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Changes/NewUrbanBufferPT / Preparation/PublicTransportLayers/Current/CurrentUrbanBufferPT_Germany) * value(100, float32))";
+			
+			attribute <float32> Ind_VE01_NewUrbanPT_rel_germany (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Changes/VE01_NewUrbanPT / Preparation/PublicTransportLayers/Changes/NewUrbanPT_Germany) * value(100, float32))";
+			
+			attribute <float32> Ind_VE02_NewUrbanBufferPT_rel_germany (Geography/RegionDomains/Kreise): IsHidden = "True" 
+				,	Expr	= "float32((Preparation/PublicTransportLayers/Changes/VE02_NewUrbanBufferPT / Preparation/PublicTransportLayers/Changes/NewUrbanBufferPT_Germany) * value(100, float32))";		
+			
+
+				
+			attribute <float32> Ind_CurrUrbanPT (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	=	"iif((float32((SubIndicators_PublicTransport/CurrentUrbanPT_rel))) > value(200, float32), value(200, float32),
+								 iif((float32((SubIndicators_PublicTransport/CurrentUrbanPT_rel))) > value(0, float32),
+								 float32((SubIndicators_PublicTransport/CurrentUrbanPT_rel)), value(0, float32)))";
+				
+			attribute <float32> Ind_ActualUrbanPT (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	=	"iif((float32((SubIndicators_PublicTransport/ActualUrbanPT_rel))) > value(200, float32), value(200, float32),
+								 iif((float32((SubIndicators_PublicTransport/ActualUrbanPT_rel))) > value(0, float32),
+								 float32((SubIndicators_PublicTransport/ActualUrbanPT_rel)), value(100, float32)))";
+								 
+			attribute <float32> Ind_VE01_NewUrbanPT (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	=	"iif((float32((SubIndicators_PublicTransport/Ind_VE01_NewUrbanPT_rel_germany))) > value(200, float32), value(200, float32),
+								 iif((float32((SubIndicators_PublicTransport/Ind_VE01_NewUrbanPT_rel_germany))) > value(0, float32),
+								 float32((SubIndicators_PublicTransport/Ind_VE01_NewUrbanPT_rel_germany)), value(0, float32)))";
+								 
+			attribute <float32> Ind_VE02_NewUrbanPT (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	=	"value(-1, float32)*(iif((float32((SubIndicators_PublicTransport/Ind_VE02_NewUrbanBufferPT_rel_germany))) > value(200, float32), value(200, float32),
+								 iif((float32((SubIndicators_PublicTransport/Ind_VE02_NewUrbanBufferPT_rel_germany))) > value(0, float32),
+								 float32((SubIndicators_PublicTransport/Ind_VE02_NewUrbanBufferPT_rel_germany)), value(0, float32)))) + value(200, float32)";
+								 
+				
+		}
+		
+			attribute <float32> IND_VE (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "(value(1, float32) * SubIndicators_PublicTransport/Ind_VE01_NewUrbanPT) + (value(0.5, float32) * SubIndicators_PublicTransport/Ind_VE02_NewUrbanPT)";
+			
+			attribute <float32> IND_VE_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr	= "IND_VE - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_PublicTransport/IND_VE";				 
+				
+			attribute <float32> IND_VE_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_PublicTransport/IND_VE + IND_VE_DIFF_BL";
+				
+}

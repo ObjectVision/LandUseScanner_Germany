@@ -1,0 +1,155 @@
+// ============ factor data export tool for 
+
+container DataSampleGenerator
+{
+	unit<UInt32> FactorSet: nrofrows = 13 // @USERINPUT: Keep number consistent with the number of factors that are mentioned in Factor_ID
+	{
+		parameter<uint32> nrAttr: Expr = "3", isHidden = "True";
+		unit<UInt32> Elements: Expr = "Range(uint32, 0, nrAttr*#.)", isHidden = "True"
+		{
+			attribute<String> Text: // @USERINPUT
+			[ 
+				//Name, ValuesUnit, Expr 
+				'AccStation', 		'minutes',   	'/Present/thematic_maps/Accessibility/Accessibility_Railway_Station',
+				'AccCity', 			'minutes',   	'/Present/thematic_maps/Accessibility/Accessibility_Central_City',
+				'AccMCity', 		'minutes',   	'/Present/thematic_maps/Accessibility/Accessibility_Middle_City',
+				'AccMotorway', 		'minutes',   	'/Present/thematic_maps/Accessibility/Accessibility_Motorway',
+				'AccAirport', 		'minutes',   	'/Present/thematic_maps/Accessibility/Accessibility_Airport',
+				'DisRdReg',			'Meter', 		'/Present/thematic_maps/Accessibility/Distance_RoadsRegional',
+				//'DisRdLoc',			'Meter', 		'/Present/thematic_maps/Accessibility/Distance_RoadsLocal',
+				'Population', 		'population',   '/Present/thematic_maps/Residential/Population_Numbers',
+				'PopPotent',		'PPot',			'/Present/thematic_maps/Accessibility/PopulationPotential',
+				'Attract',		 	'indexValue',   '/Present/thematic_maps/Residential/UrbanAttractivity',
+				'Elevation',    	'Meter', 		'/Present/thematic_maps/NatureLandscape/Altitude',
+				'Slope',   			'degrees', 		'/Present/thematic_maps/NatureLandscape/slope',
+				'SoilTypes', 		'Soils',		'/Present/thematic_maps/NatureLandscape/SoilTypes',
+				// 'SoilQuality',		'SoilQual',		'/Present/thematic_maps/NatureLandscape/SoilQualityMunicipal',
+				'CarbonCon',		'SoilCarbonContent',	'/Present/thematic_maps/NatureLandscape/CarbonContent'
+			];
+		}
+		attribute<String> Name:       Expr = "Elements/Text[value(UInt32(ID(.))* nrAttr + 0, Elements)]", DialogType = "LabelText";
+		attribute<String> ValuesUnit: Expr = "Elements/Text[value(UInt32(ID(.))* nrAttr + 1, Elements)]";
+		attribute<String> Expr:       Expr = "Elements/Text[value(UInt32(ID(.))* nrAttr + 2, Elements)]";
+	}
+	
+	unit<uint8> KernelSet: nrofrows = 3
+	{
+		attribute<String> MatrRef: [ 
+			'Geography/DistMatrices/pot10Range/potRange/RelWeightSqrt', 
+			'Geography/DistMatrices/pot20Range/potRange/RelWeightSqrt', 
+			'Geography/DistMatrices/pot100Range/potRange/RelWeightSqrt'
+		];
+	}
+	
+	unit<uint8> ModelType: Expr = "Classifications/LU/ModelType";
+	
+	unit<UInt32> PotentialSet: nrofrows = 9 // @USERINPUT: Keep number consistent with the number of LandUse_ID's and Func_ID's given below
+	{
+		attribute<ModelType> LandUse_ID: [ 1, 2, 3, 7, 8, 9, 10, 11, 1 ]; // @USERINPUT: the list of land use types for which factors that need to be exported
+		attribute<KernelSet> Func_ID:    [ 0, 0, 0, 0, 0, 0,  0,  0, 2 ]; // @USERINPUT: the list of kernel id's to apply on the given LandUse_ID !!! Is Specific per paramset, depends on the contents of NeighMat.txt
+		
+		attribute<String> Name:      Expr = "'NE_'+ModelType/Name[LandUse_ID]+'_'+String(Func_ID) "; // this will be the item name, similar to DyanmicComponent names
+		attribute<String> ShortName: Expr = "'NE'+String(ID(.))"; // this will be the column name in the resulting .dbf thus no more than 10 chars.
+	}
+	
+	container Generator
+	{
+		unit<spoint> domain_grid: Expr = "geography/dla_100m";
+		unit<UInt32> domain: Expr= "Subset(Classifications/LU/ModelType/IsAllocatable[Present/landuse/germany])", DialogType = "Map", DialogData = "BaseGrid"
+		{
+			attribute<domain_grid> grid_rel: Expr = "nr_OrgEntity";
+			attribute<.> BaseGrid(domain_grid): Expr = "invert(grid_rel)";
+		}
+		
+		attribute<Classifications/LU/ModelType> OrgLanduseGrid(domain_grid): Expr = "Present/landuse/germany";
+		attribute<Classifications/LU/ModelType> OrgLanduse    (domain     ): Expr = "OrgLanduseGrid[domain/grid_rel]";
+		
+		attribute<domain> randomPermutation(domain): Expr = "rnd_permutation(1, domain)"; // !!! Don't user the same seed as in the permutation of the allocatable cells; that did select only the geographically first allocatable cells. They can be the same as in 
+		
+		//attribute<bool> sampleDrawer1(domain): Expr = "rnd_permutation(1, domain) < #domain / 500"; // select 70000 cells, which is approx. (0.2%) or 1 out of 500 allocatable land units.
+		attribute<bool> sampleDrawer1(domain): Expr = "rnd_permutation(1, domain) < #domain / 50"; // select 716.000 cells, which is approx. (2%) or 1 out of 50 allocatable land units.
+		attribute<bool> sampleDrawer2(domain): Expr = "rnd_uniform    (1, domain, range(Float64, 0.0, 1.0)) * Float64(pcount(OrgLanduse)[OrgLanduse]) < 200.0"; // select approx. 200 samples per LUT if available as a kind of positive discrimination to have a minimum representation for each land use type.
+		unit<UInt32> sampleSet: Expr = "Subset(sampleDrawer1 || sampleDrawer2)", 
+			DialogType = "Map", DialogData = "GeoRef"
+		{
+			attribute<domain_grid> GeoRef: Expr = "domain/grid_rel[nr_OrgEntity]";
+		}
+		
+		container FactorDbfFile: 
+			StorageName = "%LocalDataDir%/d100/Samples/Factors.dbf", 
+			Expr = 
+				"for_each_nedvn("
+					"FactorSet/Name, "
+					"'('+FactorSet/Expr+')[sampleSet/GeoRef]', "
+					"sampleSet, "
+					"Classifications, FactorSet/ValuesUnit"
+				")"
+		{
+			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/nr_OrgEntity]";
+		}
+		
+		container PotentialData: Expr = 
+			"for_each_nedv("
+				"PotentialSet/Name, "
+				"'potential(Float32(Present/landuse/germany == value('+String(PotentialSet/LandUse_ID)+', ModelType)), '+KernelSet/MatrRef[PotentialSet/Func_ID]+')[domain/grid_rel]', "
+				"domain, "
+				"Float32"
+			")";
+		attribute<Bool> IsArea(domain_grid): Expr = "Present/landuse/germany > 0[ModelType]";
+		
+		container AreaData: Expr = 
+			"for_each_nedv("
+				"PotentialSet/Name, "
+				"'potential(Float32(IsArea), '+KernelSet/MatrRef[PotentialSet/Func_ID]+')[domain/grid_rel]', "
+				"domain, "
+				"Float32"
+			")";
+		container NeighbourData: Expr = 
+			"for_each_nedv("
+				"PotentialSet/Name, "
+				"'PotentialData/'+PotentialSet/Name+' / AreaData/'+PotentialSet/Name, "
+				"domain, "
+				"Float32"
+			")";
+		container MeanEnrichData: Expr = 
+			"for_each_nedv("
+				"PotentialSet/Name, "
+				"'replace_value(sum(Float32(Present/landuse/germany == value('+String(PotentialSet/LandUse_ID)+', ModelType))) / sum(Float32(IsArea)), Float32(0.0), Float32(9.0)) ', "
+				"void, "
+				"Float32"
+			")";
+		container EnrichData: Expr = 
+			"for_each_nedv("
+				"PotentialSet/Name, "
+				"'MakeDefined(NeighbourData/'+PotentialSet/Name+' / MeanEnrichData/'+PotentialSet/Name+', Float32(0.0)) ', "
+				"domain, "
+				"Float32"
+			")";
+		
+		container PotentialDbfFile: 
+			StorageName = "%LocalDataDir%/d100/Samples/Pots.dbf", // Potential Sample, as currently used as dynamic factors
+			Expr = 
+				"for_each_nedv("
+					"PotentialSet/ShortName, "
+					"'PotentialData/'+PotentialSet/Name+'[sampleSet/nr_OrgEntity]', "
+					"sampleSet, "
+					"Float32"
+				")"
+		{
+			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/nr_OrgEntity]";
+		}
+		container EnrichmentDbfFile: 
+			StorageName = "%LocalDataDir%/d100/Samples/NE.dbf",  // Neighbourhood Enrichment Sample, as described in the Clue model descr.
+			Expr = 
+				"for_each_nedv("
+					"PotentialSet/ShortName, "
+					"'EnrichData/'+PotentialSet/Name+'[sampleSet/nr_OrgEntity]', "
+					"sampleSet, "
+					"Float32"
+				")"
+		{
+			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/nr_OrgEntity]";
+		}
+	}
+	parameter<String> GenerateAll: Expr = "'Ready'", ExplicitSuppliers = "Generator/FactorDbfFile;Generator/PotentialDbfFile;Generator/EnrichmentDbfFile";
+}

@@ -1,0 +1,25 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container Ind_GreenUrban: Descr = "A set of indicators allowing the evaluation of policies by describing their impact on the degree of urban green and open space in urban areas."		
+	{
+		container Preparation: Descr = "Preparation for calculation"
+		{
+			parameter<float32> Germany_SuV_2009: Expr = "sum(float32(lookup(present/landuse/germany, Classifications/LU/ModelType/IsUrban)))";
+			parameter<float32> Germany_SuV_model: Expr = "sum(float32(lookup(results/landuse/model, Classifications/LU/ModelType/IsUrban)))";
+			parameter<float32> Germany_Green_2009: Expr = "sum(float32(lookup(present/landuse/germany, Classifications/LU/ModelType/IsGreen)))";
+			parameter<float32> Germany_Green_model: Expr = "sum(float32(lookup(results/landuse/Model, Classifications/LU/ModelType/IsGreen)))";
+	}
+
+}

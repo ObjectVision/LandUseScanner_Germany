@@ -1,0 +1,234 @@
+container thematic_maps: Using = "Units;Geography;Classifications"
+{
+	container Residential
+	{
+		container Import
+		{
+			attribute<population> Einwohnerzahl (domain_grid):
+				Label = "Population",
+				Descr = "Disaggregated Population",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_ewz.tif";
+				
+			attribute<EW_km2> Einwohnerdichte (domain_grid):
+				Label = "PopulationDensity",
+				Descr = "Population Density",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_ewz_density.tif";
+				
+			attribute<indexValue> UrbanAttractivity (domain_grid):
+				Label = "UrbanAttractivity",
+				Descr = "Soziale Infrastruktur",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_infrastruktur_area.tif"; // aktualisiert!
+
+			attribute<euro_M2> Nettokaltmieten (domain_grid):
+				Label = "Nettokaltmieten in Gitterzellen",
+				Descr = "Mieten",
+				Source = "Zensus 2022",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_nettokaltmiete_0_32bit.tif"; // aktualisiert!
+
+			attribute<Meter> Apotheken (domain_grid):
+				Label = "Nahversorgung - Erreichbarkeit von Apotheken",
+				Descr = "Soziale Infrastruktur",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_NV_Apotheken_.tif"; // aktualisiert!
+				
+			attribute<Meter> Grundschulen (domain_grid):
+				Label = "Nahversorgung - Erreichbarkeit von Grundschulen",
+				Descr = "Soziale Infrastruktur",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_NV_Grundschulen_.tif"; // aktualisiert!
+				
+			attribute<Meter> Haltestellen (domain_grid):
+				Label = "Nahversorgung - Erreichbarkeit von Haltestellen",
+				Descr = "Soziale Infrastruktur",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_NV_Haltestellen_.tif"; // aktualisiert!
+				
+			attribute<Meter> Hausarzt (domain_grid):
+				Label = "Nahversorgung - Erreichbarkeit von Hausärzten",
+				Descr = "Soziale Infrastruktur",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_NV_Hausarzt_.tif"; // aktualisiert!
+				
+			attribute<Meter> Post (domain_grid):
+				Label = "Nahversorgung - Erreichbarkeit von Postämtern",
+				Descr = "Soziale Infrastruktur",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_NV_Post_.tif"; // aktualisiert!
+
+			attribute<Meter> Supermarkt (domain_grid):
+				Label = "Nahversorgung - Erreichbarkeit von Supermärkten",
+				Descr = "Soziale Infrastruktur",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/soc_NV_Supermarkt_.tif"; // aktualisiert!
+		}
+		
+		attribute<population> Population_Numbers(domain_grid): Expr = "Import/Einwohnerzahl >=0[population] ? Import/Einwohnerzahl : -9999[population]", cdf = "Classifications/pop/ClassBreaks";
+		attribute<EW_km2>     Population_Density(domain_grid): Expr = "Import/Einwohnerdichte", cdf = "Classifications/popdens/ClassBreaks";
+		attribute<indexValue> UrbanAttractivity (domain_grid): Expr = "Import/UrbanAttractivity >=0[indexValue] ? Import/UrbanAttractivity : -9999[indexValue]", cdf = "Classifications/ua_index/ClassBreaks";
+		attribute<euro_M2>    Nettokaltmieten   (domain_grid): Expr = "Import/Nettokaltmieten >=0[euro_M2] ? Import/Nettokaltmieten : -9999[euro_M2]", cdf = "Classifications/Euro_M2_10K/ClassBreaks";
+		attribute<Meter>      Apotheken         (domain_grid): Expr = "Import/Apotheken >=0[Meter] ? Import/Apotheken : -9999[Meter]", cdf = "Classifications/m_dist/ClassBreaks";
+		attribute<Meter>      Grundschulen      (domain_grid): Expr = "Import/Grundschulen >=0[Meter] ? Import/Grundschulen : -9999[Meter]", cdf = "Classifications/m_dist/ClassBreaks";
+		attribute<Meter>      Haltestellen      (domain_grid): Expr = "Import/Haltestellen >=0[Meter] ? Import/Haltestellen : -9999[Meter]", cdf = "Classifications/m_dist/ClassBreaks";
+		attribute<Meter>      Hausarzt          (domain_grid): Expr = "Import/Hausarzt >=0[Meter] ? Import/Hausarzt : -9999[Meter]", cdf = "Classifications/m_dist/ClassBreaks";
+		attribute<Meter>      Post              (domain_grid): Expr = "Import/Post >=0[Meter] ? Import/Post : -9999[Meter]", cdf = "Classifications/m_dist/ClassBreaks";
+		attribute<Meter>      Supermarkt        (domain_grid): Expr = "Import/Supermarkt >=0[Meter] ? Import/Supermarkt : -9999[Meter]", cdf = "Classifications/m_dist/ClassBreaks";
+	}
+
+	container Accessibility: Descr = "Maps with accessibilities"
+	{
+		container Import
+		{
+			attribute<minutes> AccRailwayStation(domain_grid):
+				Label = "Accessibility of intercity railway station",
+				Descr = "Accessibility of interregional trainstations in minutes",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/acc_miv_fernbahn2022.tif";
+				
+			attribute<minutes> AccCentralCity(domain_grid):
+				Label = "Accessibility of central City",
+				Descr = "Accessibility of a central city (Oberzentrum) by car in minutes",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/acc_miv_oz2022.tif";
+			
+			attribute<minutes> AccMiddleCity(domain_grid):
+				Label = "Accessibility of middle City",
+ 				Descr = "Accessibility of a middle city (Mittelzentrum) by car in minutes",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/acc_miv_mz_2022.tif";
+				
+			attribute<minutes> AccMiddleCentralCityPT(domain_grid): //mit Daten von 2020 aktualisiert
+				Label = "Accessibility of middle City by public transport",
+ 				Descr = "Accessibility of a middle and central city (Mittelzentrum und Oberzentrum) by public transport in minutes",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/acc_oev_mzoz_2020.tif";
+				
+			attribute<minutes> AccMiddleCentralCityPT_Station(domain_grid)://mit Daten von 2020 aktualisiert
+				Label = "Accessibility of middle and central City by public transport",
+ 				Descr = "Accessibility of a middle and central city (Mittelzentrum und Oberzentrum) by public transport in minutes - only areas within 500m distance of train/bus stops",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/acc_oev_mzoz_buffer500.tif";
+			
+			attribute<minutes> AccMotorway(domain_grid):
+				Label = "Accessibility of Motorway slip road",
+				Descr = "Accessibility of a motorway slip road by car in minutes",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/acc_miv_bab2022.tif";
+				
+			attribute<minutes> AccAirport(domain_grid):
+				Label = "Accessibility of Airports",
+				Descr = "Accessibility of the next International Airport by car in minutes",
+				Source = "BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/acc_miv_airport2022.tif";
+
+			attribute<Meter> DistBAB(domain_grid)://aktualisiert
+				Label = "Distance to rmotorways",
+				Descr = "Euclidian distance to the next motorways",
+				Source = "BBSR/ATKIS",
+				StorageName = "%LUS_DataDir%/thematic_maps/dist_bab.tif";
+			
+			attribute<Meter> DistRoadsRegional(domain_grid)://aktualisiert
+				Label = "Distance to regional / national roads",
+				Descr = "Euclidian distance to the next regional / national road (no motorways, no local roads)",
+				Source = "BBSR/ATKIS",
+				StorageName = "%LUS_DataDir%/thematic_maps/dist_regionalestrassen.tif";
+			
+			attribute<Meter> DistRoadsLocal(domain_grid)://aktualisiert
+				Label = "Distance to local roads",
+				Descr = "Euclidian distance to the next local road (no motorways, no regional roads)",
+				Source = "BBSR/ATKIS",
+				StorageName = "%LUS_DataDir%/thematic_maps/dist_lokalestrassen.tif";
+				
+			attribute<PPot> PopPotential (domain_grid):
+				Label = "Population Potential",
+				Descr = "Population Potential",
+				Source = "OSM/ObjectVision",
+				StorageName = "%LUS_DataDir%/OSM/PopulationPotential.tif";		
+		}
+		
+		attribute<minutes> Accessibility_Railway_Station(domain_grid): 	Expr = "Import/AccRailwayStation>=0[minutes] ? Import/AccRailwayStation : -9999[minutes]", cdf= "Classifications/min_acc/ClassBreaks";
+		attribute<minutes> Accessibility_Central_City(domain_grid): 	Expr = "Import/AccCentralCity	>=0[minutes] ? Import/AccCentralCity	: -9999[minutes]", cdf= "Classifications/min_acc/ClassBreaks";
+		attribute<minutes> Accessibility_Middle_City(domain_grid): 		Expr = "Import/AccMiddleCity	>=0[minutes] ? Import/AccMiddleCity		: -9999[minutes]", cdf= "Classifications/min_acc/ClassBreaks";
+		attribute<minutes> Accessibility_Middle_Central_City_PT(domain_grid): 	Expr = "Import/AccMiddleCentralCityPT	>=0[minutes] ? Import/AccMiddleCentralCityPT	: -9999[minutes]", cdf= "Classifications/min_acc/ClassBreaks";
+		attribute<minutes> Accessibility_Middle_Central_City_PT_Station(domain_grid): 	Expr = "Import/AccMiddleCentralCityPT_Station	>=0[minutes] ? Import/AccMiddleCentralCityPT_Station	: -9999[minutes]", cdf= "Classifications/min_acc/ClassBreaks";
+		attribute<minutes> Accessibility_Motorway(domain_grid): 		Expr = "Import/AccMotorway		>=0[minutes] ? Import/AccMotorway		: -9999[minutes]", cdf= "Classifications/min_acc/ClassBreaks";
+		attribute<minutes> Accessibility_Airport(domain_grid): 			Expr = "Import/AccAirport		>=0[minutes] ? Import/AccAirport        : -9999[minutes]", cdf= "Classifications/min_acc/ClassBreaks";
+		attribute<Meter>   Distance_Motorways(domain_grid): 			Expr = "Import/DistBAB	>=0[Meter]	 ? Import/DistBAB	: -9999[Meter]",   cdf= "Classifications/m_dist/ClassBreaks";		
+		attribute<Meter>   Distance_RoadsRegional(domain_grid): 		Expr = "Import/DistRoadsRegional>=0[Meter]	 ? Import/DistRoadsRegional	: -9999[Meter]",   cdf= "Classifications/m_dist/ClassBreaks";
+		attribute<Meter>   Distance_RoadsLocal(domain_grid): 			Expr = "Import/DistRoadsLocal	>=0[Meter]	 ? Import/DistRoadsLocal	: -9999[Meter]",   cdf= "Classifications/m_dist/ClassBreaks";		
+		attribute<PPot>    PopulationPotential (domain_grid): 				Expr = "Import/PopPotential		>=0[PPot]	 ? Import/PopPotential		: -9999[PPot]",   cdf= "Classifications/Ppotential/ClassBreaks";		
+	}
+
+	container NatureLandscape
+	{
+		container Import
+		{
+			attribute<Meter> ElevGermany (domain_grid):
+				Label = "Elevation in meters for Germany",
+				Descr = "100 meter grid with elevation in meter for Germany derived from SRTM data",
+				Source = "http://srtm.csi.cgiar.org",
+				StorageName = "%LUS_DataDir%/thematic_maps/nat_gelaendehoehe.tif";
+
+			attribute<degrees> SlopeGermany (domain_grid):
+				Label = "Slope in degrees for Germany",
+				Descr = "100 meter grid with slope in degrees for Germany derived from SRTM data",
+				Source = "http://srtm.csi.cgiar.org",
+				StorageName = "%LUS_DataDir%/thematic_maps/nat_hangneigung.tif";
+				
+			attribute<msqr> SoilsGermany (domain_grid):
+				Label = "Soil Quality",
+				Descr = "250 meter grid with potential yield on agricultural areas based on the Müncheberger Soil Quality Rating (SQR)",
+				Source = "BGR, 2013",
+				StorageName = "%LUS_DataDir%/thematic_maps/nat_ertragspotenzial_interpolation.tif";
+				
+			attribute<Jahr> AgeForestImport (domain_grid):
+				Label = "Age of forests",
+				Descr = "Age of forests interpolated mean of Kreise from federal forest inventory (is currently updated)",
+				Source = "https://www.ti.bund.de/de/infrastruktur/geodaten; Processed by BBSR",
+				StorageName = "%LUS_DataDir%/thematic_maps/nat_wald_alter_interpoliert.tif";
+				
+			attribute<uint4>  CarbonContent   (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_humusgehalt.tif";
+			attribute<uint4>  SoilTypes       (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_leitbodentypen.tif";
+			attribute<uint4>  Floods_combined (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser_combined.tif"; //aktualisiert!
+		}
+	
+		attribute<Meter>              Altitude             (domain_grid) := Import/ElevGermany	 <=4000[Meter]	? Import/ElevGermany	: -9999[Meter],   cdf = "Classifications/m_elevation/ClassBreaks" ; 
+		attribute<degrees>            Slope                (domain_grid) := Import/SlopeGermany >=   0[degrees]? Import/SlopeGermany	: -9999[degrees], cdf = "Classifications/slope/ClassBreaks";
+		attribute<msqr>               SoilQuality          (domain_grid) := Import/SoilsGermany >=   0[msqr]	? Import/SoilsGermany	: -9999[msqr],    cdf = "Classifications/sqr/ClassBreaks";
+		attribute<Soils>              SoilTypes            (domain_grid) := Import/SoilTypes[Soils];
+		attribute<SoilCarbonContent>  CarbonContent        (domain_grid) := Import/CarbonContent[SoilCarbonContent];
+		attribute<Policy>             Floods100y           (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser100j.tif"; //aktualisiert!
+		attribute<Policy>             Floods_extr          (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser_extrem.tif"; //aktualisiert!
+		attribute<Policy_Levels>      Floods_combined      (domain_grid) := Import/Floods_combined[Policy_Levels];
+		attribute<Policy>             UnfragmentedSpace    (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/uzvr_2015_.tif";  //aktualisiert!
+		attribute<Landslide>          Landslides           (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_landslides.tif"; //aktualisiert!
+		attribute<Jahr>	              AgeForests           (domain_grid) := Import/AgeForestImport	 < 255[Jahr]  ? Import/AgeForestImport	: -9999[Jahr]; //Bundeswaldinventur ist in Arbeit
+		attribute<Jahr>	              AgeForestsUrbanGreen (domain_grid) := iif(present/landuse/germany == value(7, uint8), 50.0[Jahr], AgeForests);
+		attribute<KWh_m2>             Sonneneinstrahlung   (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_sonneneinstrahlung.tif";	
+	}
+	
+	container Climate
+	{
+		container Import
+			{
+				attribute<Day> HotDays2020(domain_grid):
+					Label = "Hot Days in Reference Period",
+					Descr = "Number of hot days in the period 1991 - 2020",
+					Source = "DWD",
+					StorageName = "%LUS_DataDir%/thematic_maps/nat_heissetage_dwd.tif";
+					
+				attribute<Day> HotDays2100(domain_grid):
+					Label = "Hot Days in Climate Scenario",
+					Descr = "Number of hot days in the period 2091 - 2100, RCP 4.5",
+					Source = "Potsdam Institut für Klimafolgenforschung (PIK), 2022",
+					StorageName = "%LUS_DataDir%/thematic_maps/nat_heissetage_2091-2100_pik.tif";
+			}
+			
+			attribute<Day>   HotDaysRef(domain_grid):     Expr = "Import/HotDays2020	 >=0[Day]	? Import/HotDays2020	: -9999[Day]",   cdf = "Classifications/days/ClassBreaks" ; 
+			attribute<Day>   HotDaysScen(domain_grid):    Expr = "Import/HotDays2100	 >=0[Day]	? Import/HotDays2100	: -9999[Day]",   cdf = "Classifications/days/ClassBreaks" ; 
+			attribute<Int8>  ThermalLoad(domain_grid):	  Expr = "Int8(HotDaysRef >= value(8, Day) || (HotDaysScen - HotDaysRef) >= value(7, Day))"; // das war ursprünglich eine UND-Bedingung. Es gibt aber heute schon mehr heiße Tage, als in der Klimaprojektion enthalten. Deshalb funktioniert und nicht. Habe ein ODER daraus gemacht.
+	}
+}
+

@@ -1,0 +1,324 @@
+Template DynamicSuitabilities_T : using = "units;geography"
+{
+	// Begin CaseParameters
+	unit<SPoint> domain_grid;
+	// end of obligatory CaseParameters
+	
+	attribute<LU/ModelType> CurrLU        (domain_grid) := Present/LandUse/germany;
+	parameter<Float32>      UrbanDensificationParameter := 0f;
+	parameter<Jahr>         StartYear                   := 2010[Jahr]; //stimmt das so?
+	parameter<Jahr>         FinalYear                   := 2019[Jahr]; //stimmt das so?
+	parameter<string>       ScenarioSet;
+	// end of optional CaseParameters
+	
+	unit<UInt8>          AllocType            := Classifications/LU/AllocType;
+	attribute<AllocType> CurrAT (domain_grid) := Classifications/LU/ModelType/AllocType_rel[CurrLU];
+	
+	container DistanceDecay
+	{
+		container km1 := 
+				for_each_nedvld(
+					  Classifications/LU/ModelType/Name
+					, 'potential(Float32(CurrLU= '+ String(ID(/Classifications/LU/ModelType))+ '[Classifications/LU/ModelType]), Distmatrices/pot10Range/potrange/RelWeightSqrt)'
+					, domain_grid
+					, Potential
+					, Classifications/LU/ModelType/Label
+					, Classifications/LU/ModelType/Descr
+				);
+				
+		container km10 :=
+				for_each_nedvld(
+					  Classifications/LU/ModelType/Name
+					, 'potential(Float32(CurrLU = '+ String(ID(/Classifications/LU/ModelType))+ '[Classifications/LU/ModelType]), DistMatrices/pot100Range/potrange/RelWeightSqrt)'
+					, domain_grid
+					, Potential
+					, Classifications/LU/ModelType/Label
+					, Classifications/LU/ModelType/Descr
+				);
+	}	
+	container NeighbourhoodPotential
+	{
+		attribute<euro_m2_jahrlich> Wohn_Misch (Domain_grid) :=
+			   -0.2021873 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.0111189 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0202040 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.8028124 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.0471415 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0211223 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.0074061 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 +  0.7467324 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0345417 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 + -0.0495562 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.0205730 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0032674 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0368558 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.0228177 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0007996 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                 
+
+		attribute<euro_m2_jahrlich> BesFktPrg (Domain_grid):=
+			   -0.77304993 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.23741516 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.01447096 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.76793439 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.02053107 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.02533800 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.00648045 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 +  0.21389071 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 +  0.26806789 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.00001346 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.00378454 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.00312221 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.07963350 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.01070528 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.00022387 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]		;
+		                   
+					
+		attribute<euro_m2_jahrlich> Industrie_Gewerbe (Domain_grid):=
+			   -0.4429029 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.1601929 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0130599 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.8296409 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.0334282 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0331886 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 +  0.0028137 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 +  0.0848921 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0113124 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.4303731 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.0192985 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0088730 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0350365 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.0024424 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0004031 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                 
+		
+		attribute<euro_m2_jahrlich> Verkehr (Domain_grid) :=
+			   -0.5953730 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.2747983 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0071625 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.7880782 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.0349326 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0282663 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.0026363 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.0225123 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0154720 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.0186860 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.0187198 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0078632 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0307577 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 +  0.4684146 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0003121 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                 
+				
+		attribute<euro_m2_jahrlich> Abbau (Domain_grid):=
+			   -0.829783 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.376289 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.025687 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.972464 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.059882 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.015978 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 +  0.337341 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.297322 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.026758 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 + -0.009463 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.029386 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.007561 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.047667 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.012051 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.019533 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                
+		
+		attribute<euro_m2_jahrlich> Siedlungsfreiflaeche (Domain_grid):=
+			   -0.52264487 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.23248336 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 +  0.00003869 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.66829911 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.03159095 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.00995675 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.00333261 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 +  0.07711287 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.01250313 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.00692566 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 +  0.42296339 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.00638825 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.06851291 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.00778677 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.00037926 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                  
+			
+		attribute<euro_m2_jahrlich> Acker (Domain_grid) :=
+			    1.1261378 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 +  0.0322597 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0165072 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.8492463 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.0521313 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0496146 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.0019752 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.1623852 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0179197 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 + -0.0289333 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.0416612 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0010484 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0397151 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.0168805 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0024490 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                 
+		
+			
+		attribute<euro_m2_jahrlich> Gruenland (Domain_grid) :=
+			   -0.3084422 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 +  0.9703885 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0241706 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.6303809 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.0535010 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0349055 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.0038961 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.0572751 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0292904 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 + -0.0319644 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.0195480 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0040474 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0371671 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.0070461 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0014177 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                 
+		
+		attribute<euro_m2_jahrlich> sonstLW (Domain_grid):=
+			   -0.3744344 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.1209109 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 +  0.4410315 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.6351322 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.0523730 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0528223 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.0038349 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 +  0.0179541 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0285947 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 + -0.0285435 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.0135053 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 + -0.0026922 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0409722 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.0151148 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0001588 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;		          
+						
+		attribute<euro_m2_jahrlich> Wald_Gehoelz (Domain_grid):=
+			   -0.4564580 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.1715719 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0135947 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 +  0.9608731 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 +  0.0048733 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0013643 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 +  0.0038552 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.0740168 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0110993 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.0198176 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 +  0.0103976 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0056831 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0400403 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 +  0.0039005 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0008181 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;
+
+		attribute<euro_m2_jahrlich> FreiflaechenPV (Domain_grid):=
+			   -1.026207 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.459342 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.039378 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -1.286053 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.099971 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.065903 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.005097 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.136041 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.028351 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.025561 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.026869 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.286231 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.046842 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.014989 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.002702 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;
+
+		attribute<euro_m2_jahrlich> Windparkflaeche(Domain_grid):=
+			   -1.0949398 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.4338004 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0747254 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -1.1750890 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 + -0.0985730 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0619859 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 + -0.0095717 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.4769189 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0029805 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 + -0.0066114 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 + -0.0290566 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0007932 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 +  0.3821916 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.0133922 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0040507 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;
+
+		attribute<euro_m2_jahrlich> unkultiv(Domain_grid):=
+			   -0.5516005 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.2955437 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0206015 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.5834223 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 +  0.5052023 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 + -0.0039327 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 +  0.0003673 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.0601413 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0156488 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.0198703 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 +  0.0044491 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0039522 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0402546 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 +  0.0045841 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 + -0.0008313 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;
+
+		attribute<euro_m2_jahrlich> Wasser(Domain_grid):=
+			   -0.5389531 [euro_m2_jahrlich] * DistanceDecay/km1/Acker[Potential]
+			 + -0.0904252 [euro_m2_jahrlich] * DistanceDecay/km1/Gruenland[Potential]
+			 + -0.0252614 [euro_m2_jahrlich] * DistanceDecay/km1/sonstLW[Potential]
+			 + -0.7708047 [euro_m2_jahrlich] * DistanceDecay/km1/Wald_Gehoelz[Potential]
+			 +  0.0095588 [euro_m2_jahrlich] * DistanceDecay/km1/unkultiv[Potential]
+			 +  0.4428600 [euro_m2_jahrlich] * DistanceDecay/km1/Wasser[Potential]
+			 +  0.0270840 [euro_m2_jahrlich] * DistanceDecay/km1/Abbau[Potential]
+			 + -0.1147388 [euro_m2_jahrlich] * DistanceDecay/km1/Wohn_Misch[Potential]
+			 + -0.0123368 [euro_m2_jahrlich] * DistanceDecay/km1/BesFktPrg[Potential]
+			 +  0.0078730 [euro_m2_jahrlich] * DistanceDecay/km1/Industrie_Gewerbe[Potential]
+			 +  0.0108240 [euro_m2_jahrlich] * DistanceDecay/km1/Siedlungsfreiflaeche[Potential]
+			 +  0.0051115 [euro_m2_jahrlich] * DistanceDecay/km1/FreiflaechenPV[Potential]
+			 + -0.0495919 [euro_m2_jahrlich] * DistanceDecay/km1/Windparkflaeche[Potential]
+			 + -0.0027449 [euro_m2_jahrlich] * DistanceDecay/km1/Verkehr[Potential]
+			 +  0.0006919 [euro_m2_jahrlich] * DistanceDecay/km1/unbestimmt[Potential]
+		;                 
+			
+				
+	}
+	
+	container BuildCosts
+	{
+		attribute<euro_m2> Wohn_Misch           (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Wohn_Misch, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> BesFktPrg            (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/BesFktPrg, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> Industrie_Gewerbe    (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Industrie_Gewerbe, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> Verkehr              (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Verkehr, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> Siedlungsfreiflaeche (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Siedlungsfreiflaeche, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> Acker                (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Acker, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> Gruenland            (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Gruenland, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> sonstLW              (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/sonstLW, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> Wald_Gehoelz         (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Wald_Gehoelz, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> FreiflaechenPV       (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/FreiflaechenPV, EconomicParameters/Baseline/Transition)];
+		attribute<euro_m2> Windparkflaeche      (AllocType) := EconomicParameters/Baseline/Transition/Costs[value(UInt32(ID(AllocType))*#AllocType, EconomicParameters/Baseline/Transition)+value(AllocType/v/Windparkflaeche, EconomicParameters/Baseline/Transition)];
+	}
+	
+	attribute<euro_m2> Wohn_Misch             (domain_grid) := (-BuildCosts/Wohn_Misch)[CurrAT] + NeighbourhoodPotential/Wohn_Misch * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Wohn_Misch];
+	attribute<euro_m2> BesFktPrg              (domain_grid) := (-BuildCosts/BesFktPrg)[CurrAT] + NeighbourhoodPotential/BesFktPrg * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/BesFktPrg];
+	attribute<euro_m2> Industrie_Gewerbe      (domain_grid) := (-BuildCosts/Industrie_Gewerbe)[CurrAT] + NeighbourhoodPotential/Industrie_Gewerbe * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Industrie_Gewerbe];
+	attribute<euro_m2> Siedlungsfreiflaeche   (domain_grid) := (-BuildCosts/Siedlungsfreiflaeche)[CurrAT] + NeighbourhoodPotential/Siedlungsfreiflaeche  * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Siedlungsfreiflaeche];
+	attribute<euro_m2> Verkehr                (domain_grid) := (-BuildCosts/Verkehr)[CurrAT] + NeighbourhoodPotential/Verkehr * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Verkehr];
+	attribute<euro_m2> Acker                  (domain_grid) := (-BuildCosts/Acker)[CurrAT] + NeighbourhoodPotential/Acker * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Acker];
+	attribute<euro_m2> Gruenland              (domain_grid) := (-BuildCosts/Gruenland)[CurrAT] + NeighbourhoodPotential/Gruenland * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Gruenland];
+	attribute<euro_m2> sonstLW                (domain_grid) := (-BuildCosts/sonstLW)[CurrAT] + NeighbourhoodPotential/sonstLW * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/sonstLW];
+	attribute<euro_m2> Wald_Gehoelz           (domain_grid) := (-BuildCosts/Wald_Gehoelz)[CurrAT] + NeighbourhoodPotential/Wald_Gehoelz * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Wald_Gehoelz];
+	attribute<euro_m2> FreiflaechenPV         (domain_grid) := (-BuildCosts/FreiflaechenPV)[CurrAT] + NeighbourhoodPotential/FreiflaechenPV * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/FreiflaechenPV];
+	attribute<euro_m2> Windparkflaeche        (domain_grid) := (-BuildCosts/Windparkflaeche)[CurrAT] + NeighbourhoodPotential/Windparkflaeche * EconomicParameters/Baseline/CapitalizationFactor[Classifications/LU/AllocType/v/Windparkflaeche];
+}
+

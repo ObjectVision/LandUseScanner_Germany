@@ -1,0 +1,108 @@
+container RegionalClaimSets_S_ClimateMitigation_Afforestation: Using = "Units"
+{
+//	-------------TableChopper for processing claim tables -------------------------
+
+	container TableChopper : Istemplate = "True"
+	{
+		parameter<String> FileName;
+		unit<uint16> RegionUnit;
+		attribute<Uint32> RegionKey(RegionUnit);
+		parameter<String> FieldSeparator;
+		
+		parameter<String> FileData: StorageType = "str", StorageName = "=FileName";
+		parameter<String> HeaderLine: Expr = "readLines(FileData, void, 0)";
+		parameter<Bool>   HeaderOK:   Expr = "regex_match(HeaderLine, '[A-Za-z_][A-Za-z_0-9]*(;[A-Za-z_][A-Za-z_0-9]*)*')"; // read quoted column names separated by semicolons and no other characters; consider parameterization.
+		
+		unit<UInt32> Field: Expr = "Range(UInt32, 0, strcount(HeaderLine, FieldSeparator)+1)"
+		{
+			attribute<String> Name: Expr = "ReadArray(HeaderLine, Field, String, 0)";
+		}
+		
+		unit<uint32> RowUnit: Expr = "Range(uint16, 0, strcount(FileData, '\n')+1)";
+		attribute<String> BodyLines(RowUnit): Expr = "readLines(FileData, RowUnit, HeaderLine/ReadPos)", IntegrityCheck = "HeaderOK";
+		attribute<Bool>   LinesOK  (RowUnit): expr = "regex_match(BodyLines, '(-?+[0-9]++|\"[^\"]*+\")?+(;(-?+[0-9]++|\"[^\"]*+\")?+)*+')"; // read quoted string or integers or nothing separated by semicolons and no other characters
+		
+		container DataStr: IntegrityCheck = "LinesOK",
+			Expr = "for_each_nedv(Field/Name, 'ReadElems(BodyLines, String, '+MakeDefined(Field/Name[ID(Field)-1]+'/ReadPos','const(0, RowUnit)')+', 1)', RowUnit, String)";
+
+		container DataNum: Expr = "for_each_nedv(FocusYear/FieldName, 'ReadElems(DataStr/'+FocusYear/FieldName+', Float32, const(0, RowUnit), 1)', RowUnit, Float32)"
+		{
+			attribute<UInt32> RegionCode(RowUnit): Expr = "='ReadElems(DataStr/'+Field/Name[0]+', UInt32, const(0, RowUnit), 1)'";
+			attribute<String> label     (RowUnit): Expr = "rjoin(RegionCode, RegionKey, RegionUnit/label)";
+		}
+		container Data: Expr = "for_each_nedv(FocusYear/FieldName, 'DataNum/'+FocusYear/FieldName+'[Row_rel]', RegionUnit, Float32)"
+		{
+			attribute<RowUnit> Row_rel(RegionUnit): Expr = "rlookup(RegionKey, DataNum/RegionCode)";
+		}
+	}
+	unit <UInt8> ClaimTable: NrOfRows = 10
+	{
+		attribute<string> Name: [
+			'urban_fabric',
+			'industrial_commercial',
+			'infrastructure',
+			'construction',
+			'brownfields',
+			'green_urban',
+			'arable',
+			'pasture',
+			'forest',
+			'naturalland'
+		];
+		attribute<String> FileNameBase: [
+			'111_urbanfabric', 
+			'121_industrial', 
+			'131_infrastructure', 
+			'151_contructionsites',
+			'152_brownfields', 
+			'161_greenurbanareas', 
+			'211_arableland', 
+			'221_pasture', 
+			'311_forest',
+			'321_naturalland'
+
+		];
+	}
+	unit<uint8> FocusYear: NrOfRows = 5
+	{
+		attribute<Units/jahr> Year: [ 2009, 2015, 2020, 2025, 2030 ];
+		attribute<String>    FieldName: Expr = "'Y_'+String(Year)";
+	}
+	container ImportData: Expr = "for_each_ne(ClaimTable/Name, 'TableChopper('+Quote('%Projdir%/data/RegionalClaimSets_S_ClimateMitigation_Afforestation/'+ClaimTable/FileNameBase+'.csv')+', Geography/RegionDomains/Kreise, Geography/Regions/Kreise/vat/ags_int,'+Quote(';')+')')";
+	
+	container ClaimTempl: IsTemplate = "True"
+	{
+		// begin case parameters	
+		attribute<Float32> ImportData(RegionUnit);
+		parameter<ratio>   MinClaimFactor;
+		parameter<ratio>   MaxClaimFactor;
+		//parameter<string> AllocTypeName;
+		// end case parameters	
+		
+		unit<uint16> RegionUnit: Expr = "Geography/RegionDomains/Kreise";
+		attribute<claimHa> Min(RegionUnit): expr  = "ImportData[claimHa] * MinClaimFactor"; 
+		attribute<claimHa> Max(RegionUnit): expr  = "ImportData[claimHa] * MaxClaimFactor";
+	}
+	
+	unit<UInt8> AllocType: Expr = "Classifications/LU/AllocType";
+	container g2015: expr = "for_each_ne(AllocType/Name, 'ClaimTempl(ImportData/'+AllocType/Name+'/Data/Y_2015,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')"
+	{
+		parameter<Units/jahr> StartYear: [ 2009 ];
+		parameter<Units/jahr> FinalYear: [ 2015 ];
+	}
+	container g2020: expr = "for_each_ne(AllocType/Name, 'ClaimTempl(ImportData/'+AllocType/Name+'/Data/Y_2020,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')"
+	{
+		parameter<Units/jahr> StartYear: [ 2015 ];
+		parameter<Units/jahr> FinalYear: [ 2020 ];
+	}
+	container g2025: expr = "for_each_ne(AllocType/Name, 'ClaimTempl(ImportData/'+AllocType/Name+'/Data/Y_2025,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')"
+	{
+		parameter<Units/jahr> StartYear: [ 2020 ];
+		parameter<Units/jahr> FinalYear: [ 2025 ];
+	}
+	container g2030: expr = "for_each_ne(AllocType/Name, 'ClaimTempl(ImportData/'+AllocType/Name+'/Data/Y_2030,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')"
+	{
+		parameter<Units/jahr> StartYear: [ 2025 ];
+		parameter<Units/jahr> FinalYear: [ 2030 ];
+	}
+}

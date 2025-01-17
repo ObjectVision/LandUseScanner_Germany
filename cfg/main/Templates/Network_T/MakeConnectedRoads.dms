@@ -1,0 +1,81 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                    //
+//                                                                                    //
+//                       Configuratie voor project: Open Data Analyse                 //
+//                                                                                    //
+//                              Object Vision 2011                                    //
+//                                                                                    //
+////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                    //
+//                  Configuratiebestand voor opbouw Connected Netwerk                 //
+//                                                                                    //
+// De niet gesloten links halen we uit de analyse, om te voorkomen dat daar de        //
+// begin en eindpunten aan zouden worden gekoppeld, hetgeen tot oneindige afstanden   //
+// zou leiden.                                                                        //
+//                                                                                    //
+// De grote netwerken (> 1km) zijn handmatig doorlopen en hiervoor zijn extra links   //
+// toegevoegd.                                                                        //
+//                                                                                    //
+////////////////////////////////////////////////////////////////////////////////////////
+
+container MakeConnectedRoads
+{
+	unit <uint32> LinkSetOrg := arc2segm(roads)
+	{
+		// attribute<SRS>        point;
+		// attribute<SRS>        nextpoint;
+		// attribute<roadDomain> SequenceNr;
+		
+		attribute<String> Key1     := string(UInt32(PointCol(    point)))+';'+string(UInt32(PointRow(    point)));
+		attribute<String> Key2     := string(UInt32(PointCol(nextpoint)))+';'+string(UInt32(PointRow(nextPoint)));
+		attribute<Bool>   noLength := Key1 == Key2;
+		attribute<String> Key      := Key1+';'+key2;
+	}
+	
+	unit <uint32> LinkSet := Unique(LinkSetORg/Key)
+	{
+		attribute<SRS>        point        := rjoin(values, LinkSetOrg/Key, LinkSetOrg/point);
+		attribute<SRS>        nextpoint    := rjoin(values, LinkSetOrg/Key, LinkSetOrg/nextpoint);
+		attribute<roadDomain> Sequence_rel := rjoin(values, LinkSetOrg/Key, LinkSetOrg/Sequence_rel);
+		
+		attribute<RoadClass>  roadtype    := roadDomain/highway_maintype_rel[Sequence_rel];
+		attribute<bool>       isConnected := all(pointset/isConnected, pointset/ArcID);
+
+		unit<uint32> pointset := union_unit(LinkSet, LinkSet)
+		{
+			attribute<SRS>        point        := union_Data(pointset, LinkSet/point, LinkSet/nextpoint);
+			attribute<bool>       isConnected  := isNull(rlookup(point, NodesNotConnected/point));
+			attribute<roadDomain> roadsnr      := Union_Data(pointset, LinkSet/SequenceNr, LinkSet/SequenceNr);
+			attribute<LinkSet>    ArcID        := value(ID(pointset) % nrofrows(LinkSet), LinkSet);
+			attribute<uint32>     ordinal      := ID(pointset) / nrofrows(LinkSet);
+		}
+		attribute<SRS> geometry (arc) := points2sequence(pointset/point, pointset/ArcID, pointset/ordinal);
+	}
+	
+	unit<uint32> NodeSet:= unique(LinkSet/pointset/point)
+	{
+		attribute<SRS>        geometry  := values;
+		attribute<Linkset>    LinkSetnr := rlookup(geometry, LinkSet/point);
+		attribute<roadDomain> roadsnr   := LinkSet/SequenceNr[LinkSetnr];
+	}
+	
+	attribute<NodeSet> F1 (LinkSet) := rlookup(LinkSet/point,     NodeSet/geometry);
+	attribute<NodeSet> F2 (LinkSet) := rlookup(LinkSet/nextpoint, NodeSet/geometry);
+
+	unit<uint32> networks := connected_parts(F1, F2)
+	{
+		attribute<uint32>   nr_nodes   := sum(const(1, NodeSet, uint32), part_rel);
+		parameter<uint32>   MaxNrNodex := max(networks/nr_nodes);
+		parameter<networks> main       := rlookup(MaxNrNodex, nr_nodes); // we gaan ervan uit dat het netwerk met de meeste nodes het hoofd netwerk is
+	}
+	
+	unit<uint32> NodesNotConnected := select_with_org_rel(networks/part_rel <> networks/main)
+	{
+		attribute<SRS> point := NodeSet/Values[org_rel];
+	}
+	unit<uint32> result := select_with_org_rel(Linkset/isConnected)
+	{
+		attribute<SRS>       geometry (arc) := Linkset/geometry[org_rel];
+		attribute<RoadClass> roadtype       := Linkset/roadtype[org_rel];
+	}
+}

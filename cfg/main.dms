@@ -1,0 +1,89 @@
+// Freiraumflächen 2030 im Auftrag des UBA, 2023
+//LN-Klassen schon erweitert: Kosten, Interest und Duration nocht aktualisieren
+
+container LandUseScanner_Germany : IntegrityCheck = "GeoDmsVersion() >= 7.011"
+{
+	unit<SPoint> domain_grid := Geography/dla_100m;
+	
+	#include <EconomicParameters.dms> 
+	container ModelParameters : using = "units"
+	{
+		parameter<jahr>    StartYear                   := 2022[Jahr];
+		parameter<Float32> UrbanDensificationParameter := 0f;
+	}
+	#include <Units.dms>
+	#include <Geography.dms>
+	#include <Classifications.dms>
+
+	container DataPreparation
+	{
+		#include <Accessibility.dms>
+		#include <DataSampleGenerator.dms>
+	}
+
+	container Present
+	{
+		#include <Present/landuse2000.dms>
+		#include <Present/thematic_maps.dms>
+		#include <Present/policy_maps.dms>
+		#include <Present/restriction_maps.dms>
+		#include <Present/preference_maps.dms>
+	}
+	
+	container BaseData
+	{
+		container StaticSuitabilities
+		{
+			container StaticSuitabilities_Baseline := Templates/Suitability/StaticSuitability_T(domain_grid, Present);
+			container StaticSuitabilities_Trend    := Templates/Suitability/StaticSuitability_Trend_T(domain_grid, Present);
+			container StaticSuitabilities_Dynamik  := Templates/Suitability/StaticSuitability_Dynamik_T(domain_grid, Present);
+		}
+	
+		container ExogenousLandUse
+		{
+			unit<uint8>  ModelType   := Classifications/LU/ModelType;
+			
+			attribute<ModelType> Y2025(domain_grid):= ModelType/IsAllocatable[Present/LandUse/Germany] ? (0 / 0)[ModelType] : Present/LandUse/Germany;
+			attribute<ModelType> Y2030(domain_grid):= Y2025;
+			attribute<ModelType> Y2035(domain_grid):= Y2030;
+			attribute<ModelType> Y2040(domain_grid):= Y2035;
+			attribute<ModelType> Y2045(domain_grid):= Y2040;
+			attribute<ModelType> Y2050(domain_grid):= Y2045;
+		}
+		
+		container RegionalClaimSets
+		{
+			#include <regionalclaimsets.dms>
+			#include <regionalclaimsets_trend.dms>
+			#include <regionalclaimsets_dynamik.dms>
+		}
+	}
+	#include <ModelRuns.dms>
+	
+	container Templates : Using = "Units;geography;Classifications"
+	{
+		#include <Templates/AllocatePeriod_ggModel_T.dms>
+		#include <Templates/RS_BalancedClassAggr_T.dms>
+		#include <Templates/Network_T.dms>
+		
+		container Suitability
+		{
+			#include <Templates/StaticSuitabilities_T.dms> 
+			#include <Templates/StaticSuitabilities_Trend_T.dms> 
+			#include <Templates/StaticSuitabilities_Dynamik_T.dms>
+			#include <Templates/DynamicSuitabilities_T.dms> 
+		}
+	}
+	
+	container RegressionTests
+	{
+		parameter<Bool> RegionGrid := sum(Float64(Geography/RegionGrids/Kreise)) > 7.6e+009;
+		
+		parameter<Bool> StatusFlagA := /ModelRuns/Baseline/Y2030/CaseData/discrete_alloc/StatusFlag;
+		parameter<Bool> StatusFlagB := /ModelRuns/Trend/Y2030/CaseData/discrete_alloc/StatusFlag;
+		parameter<Bool> StatusFlagC := /ModelRuns/Dynamik/Y2030/CaseData/discrete_alloc/StatusFlag;
+		parameter<Bool> StatusFlags := StatusFlagA && StatusFlagB && StatusFlagC;
+	}
+	
+	#include <ConfigSettings.dms>
+}

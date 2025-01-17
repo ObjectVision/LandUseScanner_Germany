@@ -1,0 +1,109 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+container Ind_LandConsumption: Descr = "A set of indicators allowing the evaluation of policies by describing their impact on land consumption."		
+{
+	container Preparation: Descr = "Preparation for calculation"
+	{
+					
+		parameter<uint32> GermanyIsUrban: Expr = "sum(uint32(present/landuse/isurban == value(TRUE, YesorNo)))";
+		
+		parameter<float32> GermanyShareIsUrban: Expr = "float32(GermanyIsUrban) / (float32(sum(uint32(results/landuse/model > value(0, uint8))))) ";
+			
+		parameter<uint32> GermanyIsUrbanCurrent: Expr = "sum(uint32(lookup(results/landuse/model, Classifications/LU/ModelType/IsUrban)))";
+				
+		parameter<uint32> GermanyIsUrbanBaseline: Expr = "sum(uint32(lookup(ModelRuns/Baseline/Yr2030/results/LandUse/model, Classifications/LU/ModelType/IsUrban)))";
+		
+		parameter<float32> GermanyDailyLandCon: Expr = "float32(GermanyIsUrbanCurrent - GermanyIsUrban) / (FinalYear - value(2009, float32)) / value(365.25, float32)";
+		
+		parameter<float32> GermanyDynamicLandCon: Expr = "float32(GermanyIsUrbanCurrent - GermanyIsUrban) / float32(GermanyIsUrban)";
+		
+		parameter<uint32> GermanyArableProduction: Expr = "sum(uint32(lookup(results/landuse/model, Classifications/LU/ModelType/IsAgri)))";
+		
+		parameter<float32> GermanyIntensityLandCon: Expr = "float32(GermanyIsUrbanCurrent - GermanyIsUrban) / (float32(sum(uint32(results/landuse/model > value(0, uint8)))) * value(0.01,float32))";
+			
+		attribute <uint32> Area_Kreise (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(uint32(results/landuse/model > value(0, uint8)), Geography/RegionGrids/Kreise)";
+		
+		attribute <uint32> FI01_IsUrban (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(uint32(lookup(results/landuse/model, Classifications/LU/ModelType/IsUrban)), Geography/RegionGrids/Kreise)";
+			
+		attribute <float32> FI02_ShareUrban (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "float32(float32(FI01_IsUrban) / float32(Area_Kreise))";
+			
+		attribute <float32> FI03_DailyLandCon (Geography/RegionDomains/Kreise): IsHidden = "True"
+			//,	Expr	= "float32(results/landuse/evaluation/urban_sprawl/urbanarea/urbangrowthabsolute) / (FinalYear - value(2009, float32)) / value(365.25, float32)";
+			,	Expr	= "float32(FI01_IsUrban) / (FinalYear - value(2009, float32)) / value(365.25, float32)";
+			
+		attribute <float32> FI04_DynamicLandCon (Geography/RegionDomains/Kreise): IsHidden = "True"
+			//,	Expr	= "float32(results/landuse/evaluation/urban_sprawl/urbanarea/urbangrowthabsolute) / float32(sum(uint32(present/landuse/isurban == value(TRUE, YesorNo)),Geography/RegionGrids/Kreise))";
+			,	Expr	= "float32(FI01_IsUrban) / float32(sum(uint32(present/landuse/isurban == value(TRUE, YesorNo)),Geography/RegionGrids/Kreise))";
+		
+		attribute <uint32> FI05_AgricProduction (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(uint32(lookup(results/landuse/model, Classifications/LU/ModelType/IsAgri)), Geography/RegionGrids/Kreise)";
+			
+		attribute <float32> FI06_IntensityLandCon (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "float32(FI01_IsUrban) / float32(float32(Area_Kreise) * value(0.01,float32))";
+				
+	}
+	container SubIndicators_LandConsumption: Descr = "Single Indicators describing land consumption"
+	{
+		
+		attribute <float32> Ind_FI02_UrbanArea (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "	iif((float32((Preparation/FI02_ShareUrban / Preparation/GermanyShareIsUrban)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/FI02_ShareUrban / Preparation/GermanyShareIsUrban)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/FI02_ShareUrban / Preparation/GermanyShareIsUrban)) * value(100, float32), value(0, float32)))";
+							
+		attribute <float32> Ind_FI02_UrbanArea_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "	iif((float32((Preparation/FI02_ShareUrban / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyShareIsUrban)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/FI02_ShareUrban / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyShareIsUrban)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/FI02_ShareUrban / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyShareIsUrban)) * value(100, float32), value(0, float32)))";
+
+		attribute <float32> Ind_FI04_DynamicLandCon (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "	iif((float32((Preparation/FI04_DynamicLandCon / Preparation/GermanyDynamicLandCon)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/FI04_DynamicLandCon / Preparation/GermanyDynamicLandCon)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/FI04_DynamicLandCon / Preparation/GermanyDynamicLandCon)) * value(100, float32), value(0, float32)))";
+							
+		attribute <float32> Ind_FI04_DynamicLandCon_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "	iif((float32((Preparation/FI04_DynamicLandCon / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyDynamicLandCon)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/FI04_DynamicLandCon / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyDynamicLandCon)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/FI04_DynamicLandCon / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyDynamicLandCon)) * value(100, float32), value(0, float32)))";
+		
+		attribute <float32> Ind_FI06_IntensityLandCon (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "	iif((float32((Preparation/FI06_IntensityLandCon / Preparation/GermanyIntensityLandCon)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/FI06_IntensityLandCon / Preparation/GermanyIntensityLandCon)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/FI06_IntensityLandCon / Preparation/GermanyIntensityLandCon)) * value(100, float32), value(0, float32)))";
+							
+		attribute <float32> Ind_FI06_IntensityLandCon_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "	iif((float32((Preparation/FI06_IntensityLandCon / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyIntensityLandCon)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/FI06_IntensityLandCon / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyIntensityLandCon)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/FI06_IntensityLandCon / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/Preparation/GermanyIntensityLandCon)) * value(100, float32), value(0, float32)))";
+												
+	}
+	
+	attribute <float32> IND_FI (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "(value(0.3333, float32) * SubIndicators_LandConsumption/Ind_FI02_UrbanArea) + (value(0.3333, float32) * SubIndicators_LandConsumption/Ind_FI04_DynamicLandCon) + (value(0.3333, float32) * SubIndicators_LandConsumption/Ind_FI06_IntensityLandCon)";
+			
+	attribute <float32> IND_FI_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "(value(0.3333, float32) * SubIndicators_LandConsumption/Ind_FI02_UrbanArea_BL) + (value(0.3333, float32) * SubIndicators_LandConsumption/Ind_FI04_DynamicLandCon_BL) + (value(0.3333, float32) * SubIndicators_LandConsumption/Ind_FI06_IntensityLandCon_BL)";
+			
+	attribute <float32> IND_FI_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "IND_FI_BL - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/IND_FI";
+				
+	attribute <float32> IND_FI_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+				,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LandConsumption/IND_FI + IND_FI_DIFF_BL";
+			
+}

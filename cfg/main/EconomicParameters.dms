@@ -1,0 +1,122 @@
+container EconomicParameters: Using = Units //Costs, Interst und Duration für Naturalland zunächst händisch festgelegt.
+{
+	container Baseline
+	{
+		unit<UInt32> Transition := combine(Classifications/LU/AllocType, Classifications/LU/AllocType)
+		{
+			attribute<euro_M2> Costs: 
+				[ //Struktur aktualisiert, Werte noch anpassen; zeilenweise lesen: von wohn_misch zu einer anderen LN kostet es... (Spaltenweise, z.B. erste Spalte 3. Zeile: Preis, dass aus Industrie Wohn_Misch wird)
+				   0,	 930,	 460,	 780,	 160,	 870,	 420,	 410,	 100,	1000,	1000, //von 110_Wohn_Misch       
+				 760,	   0,	 160,	 110,	 750,	1000,	 720,	1000,	 410,	1000,	1000, //von 120_BesFktPrg        
+				 220,	 300,	   0,	 150,	 200,	 180,	 110,	1000,	 110,	 130,	 590, //von 130_Industrie_Gewerbe
+				 650,	 210,	 230,	   0, 	 520,	 470,	 130,	 520,	 720,	1000,	1000, //von 150_Siedlungsfreiflae
+				 170,	 490,	 130,	 350,	   0,	 700,	 370,	1000,	 240,	 440,	1000, //von 200_Verkehr          
+				 130,	 490,	 240,	 790,	 650,	   0,	  10,	 180,	  90,	 370,	  80, //von 10_Acker             
+				 100,	 270,	 350,	 430,	 430,	  10,	   0,	 220,	  50,	 790,	 450, //von 20_Grünland          
+				 870,	1000,	 500,	 280,	1000,	 350,	 530,	   0,	 720,	1000,	1000, //von 30_sonstLW           
+				 570,	 520,	 110,	 510,	 620,	 370,	 180,	 670,	   0,	 200,	 200, //von 40_Wald_Gehölz       
+				1000,	1000,	1000,	1000,	1000,	1000,	1000,	1000,	1000,	   0,	1000, //von 180_FreiflaechenPV   
+				 810,	1000,	1000,	1000,	1000,	 590,	 170,	1000,	 750,	1000,	   0  //von 190_Windparkflaeche  			                                                                                                                      
+				];
+		}
+
+		attribute<Prozent_Jahrlich> Interest             (Classifications/LU/AllocType) : [  4,  4,  5,   4,  5,  3,  3,  3,   2,  2,  2]; // @@USERINPUT aktualisiert, noch prüfen
+		attribute<Jahr>             Duration             (Classifications/LU/AllocType) : [ 60, 60, 40,  40, 40, 40, 10, 10, 100, 20, 20]; // @@USERINPUT aktualisiert, noch prüfen
+		attribute<Jahrlich>         DepreciationFactor   (Classifications/LU/AllocType) := log(Float32(1.0)+ Interest *1[Jahr]/ 100[Prozent])[Jahrlich];
+		attribute<Jahr>             CapitalizationFactor (Classifications/LU/AllocType) := (Float32(1.0) - exp(-DepreciationFactor * Duration) ) / (Interest / 100[Prozent]);
+		attribute<Jahrlich>         AnnualizationFactor  (Classifications/LU/AllocType) := Float32(1.0) / CapitalizationFactor;
+	} 
+	
+	container Trend
+	{
+		unit<UInt32> Transition:= Combine(Classifications/LU/AllocType, Classifications/LU/AllocType)
+		{
+			attribute<euro_M2> Costs: 
+				[ //Struktur aktualisiert, Werte noch anpassen
+				  0,	500,	500,	500,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 110_Wohn_Misch       
+				500,	  0,	500,	500,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 120_BesFktPrg        
+				500,	500,	  0,	500,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 130_Industrie_Gewerbe
+				500,	500,	500,	  0,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 150_Siedlungsfreiflae
+				500,	500,	500,	500,	  0,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 200_Verkehr          
+				500,	500,	500,	500,	500,	  0,	100,	100,	100,	100,	100,	100,	1000,	//von 10_Acker             
+				500,	500,	500,	500,	500,	100,	  0,	100,	  0,	100,	100,	100,	1000,	//von 20_Grünland          
+				500,	500,	500,	500,	500,	100,	100,	  0,	100,	100,	100,	  0,	1000,	//von 30_sonstLW           
+				500,	500,	500,	500,	500,	100,	100,	100,	  0,	100,	100,	100,	   0,	//von 40_Wald_Gehölz       
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	  0,	100,	100,	1000,	//von 50_unkultiv          
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	100,	  0,	100,	1000,   //von 70_Abbau  
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	100,	100,	  0,	1000,	//von 180_FreiflaechenPV   
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	100,	100,	100,	   0	//von 190_Windparkflaeche 
+				];			
+		}
+
+		attribute<Prozent_Jahrlich> Interest(Classifications/LU/AllocType): [  4,  4,  5,  4,  5,  3,  3,  3,   3, 3, 3, 2, 2]; // @@USERINPUT aktualisiert, noch prüfen
+		attribute<Jahr>             Duration(Classifications/LU/AllocType): [ 60, 60, 40,  40, 40, 40, 10, 10, 10, 20, 20, 20, 100]; // @@USERINPUT aktualisiert, noch prüfen
+	
+		attribute<Jahrlich> DepreciationFactor  (Classifications/LU/AllocType):= log(Float32(1.0)+ Interest *1[Jahr]/ 100[Prozent])[Jahrlich];
+		attribute<Jahr>     CapitalizationFactor(Classifications/LU/AllocType):= (Float32(1.0) - exp(-DepreciationFactor * Duration) ) / (Interest / 100[Prozent]);
+		attribute<Jahrlich> AnnualizationFactor (Classifications/LU/AllocType):= Float32(1.0) / CapitalizationFactor;
+	}
+	
+	container Dynamik
+	{
+		unit<UInt32> Transition:= Combine(Classifications/LU/AllocType, Classifications/LU/AllocType)
+		{
+			attribute<euro_M2> Costs: 
+				[ //Struktur aktualisiert, Werte noch anpassen
+				  0,	500,	500,	500,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 110_Wohn_Misch       
+				500,	  0,	500,	500,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 120_BesFktPrg        
+				500,	500,	  0,	500,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 130_Industrie_Gewerbe
+				500,	500,	500,	  0,	500,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 150_Siedlungsfreiflae
+				500,	500,	500,	500,	  0,	100,	100,	100,	100,	100,	100,	100,	1000,	//von 200_Verkehr          
+				500,	500,	500,	500,	500,	  0,	100,	100,	100,	100,	100,	100,	1000,	//von 10_Acker             
+				500,	500,	500,	500,	500,	100,	  0,	100,	  0,	100,	100,	100,	1000,	//von 20_Grünland          
+				500,	500,	500,	500,	500,	100,	100,	  0,	100,	100,	100,	  0,	1000,	//von 30_sonstLW           
+				500,	500,	500,	500,	500,	100,	100,	100,	  0,	100,	100,	100,	   0,	//von 40_Wald_Gehölz       
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	  0,	100,	100,	1000,	//von 50_unkultiv          
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	100,	  0,	100,	1000,   //von 70_Abbau  
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	100,	100,	  0,	1000,	//von 180_FreiflaechenPV   
+				500,	500,	500,	500,	500,	100,	100,	100,	100,	100,	100,	100,	   0	//von 190_Windparkflaeche  			                                                                                                                      	
+				];
+		}
+
+		attribute<Prozent_Jahrlich> Interest(Classifications/LU/AllocType): [  4,  4,  5,  4,  5,  3,  3,  3,   3, 3, 3, 2, 2]; // @@USERINPUT aktualisiert, noch prüfen
+		attribute<Jahr>             Duration(Classifications/LU/AllocType): [ 60, 60, 40,  40, 40, 40, 10, 10, 10, 20, 20, 20, 100]; // @@USERINPUT aktualisiert, noch prüfen
+	
+		attribute<Jahrlich> DepreciationFactor   (Classifications/LU/AllocType) := log(Float32(1.0)+ Interest *1[Jahr]/ 100[Prozent])[Jahrlich];
+		attribute<Jahr>     CapitalizationFactor (Classifications/LU/AllocType) := (Float32(1.0) - exp(-DepreciationFactor * Duration) ) / (Interest / 100[Prozent]);
+		attribute<Jahrlich> AnnualizationFactor  (Classifications/LU/AllocType) := Float32(1.0) / CapitalizationFactor;
+	}
+	
+	container M_GreenUrban
+	{
+		unit<UInt32> Transition := Combine(Classifications/LU/AllocType, Classifications/LU/AllocType)
+		{
+	
+		attribute<euro_M2> Costs: [ //Struktur aktualisiert, Werte noch anpassen; zeilenweise lesen: von wohn_misch zu einer anderen LN kostet es... (Spaltenweise, z.B. erste Spalte 3. Zeile: Preis, dass aus Industrie Wohn_Misch wird)
+		  0,   90,   50,   80,  160,   90,   40,  410,  100,  680,   10,    5,    5, //von 110_Wohn_Misch       
+		 80,    0,  160,  110,  750,    5,  720,   10,  410,  500,  140,    5,   10, //von 120_BesFktPrg        
+		 20,  300,    0,  150,  200,  180,  110,    5,  110,  140,  130,  130,  590, //von 130_Industrie_Gewerbe
+		 70,  210,  230,  0,    520,  470,  130,  520,   70,  470,   10,    5,    5, //von 150_Siedlungsfreiflae
+		170,  490,  130,  350,    0,  700,  370,   20,  240,  630,   50,  440,   10, //von 200_Verkehr          
+		 10,  490,   20,   80,   60,    0,    5,   20,   10,   40,   60,   40,   10, //von 10_Acker             
+		 10,  270,   40,   40,   40,    5,    0,   20,    5,   10,  170,   80,   40, //von 20_Grünland          
+		 90,    5,  500,   30,    5,   40,   50,    0,   70,  540,   10,    5,    5, //von 30_sonstLW           
+		 60,  520,  110,   50,   60,   40,   20,   70,    0,   20,  110,  200,   20, //von 40_Wald_Gehölz       
+		  5,    5,  640,  760,  780,  490,   80,  570,   30,    0,  800,    5,    5, //von 50_unkultiv          
+		 10,   60,  300,    5,   10,  150,  350,   20,  120,   50,	  0,  690,    5, //von 70_Abbau  
+		 30,  250,   40,   60,   50,   10,   30, 1000,   20,  200,  500,  	0,   90, //von 180_FreiflaechenPV   
+		810,   20,    5,   10,    5,   60,  170,   10,  750,    5,   20,    5,    0  //von 190_Windparkflaeche  			                                                                                                                      
+						];
+	
+		}
+
+		attribute<Prozent_Jahrlich> Interest(Classifications/LU/AllocType): [  4,  4,  5,   4,  5,  3,  3,  3,   2,  2,  4,  2,  2]; // @@USERINPUT aktualisiert, noch prüfen
+		attribute<Jahr>             Duration(Classifications/LU/AllocType): [ 60, 60, 40,  40, 40, 40, 10, 10, 100, 10, 20, 20, 20]; // @@USERINPUT aktualisiert, noch prüfen
+
+	
+		attribute<Jahrlich> DepreciationFactor  (Classifications/LU/AllocType) := log(Float32(1.0)+ Interest *1[Jahr]/ 100[Prozent])[Jahrlich];
+		attribute<Jahr>     CapitalizationFactor(Classifications/LU/AllocType) := (Float32(1.0) - exp(-DepreciationFactor * Duration) ) / (Interest / 100[Prozent]);
+		attribute<Jahrlich> AnnualizationFactor (Classifications/LU/AllocType) := Float32(1.0) / CapitalizationFactor;
+	}
+	
+}

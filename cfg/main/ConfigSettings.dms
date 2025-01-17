@@ -1,0 +1,7 @@
+container ConfigSettings
+{
+	container Overridable
+	{
+		parameter<String> LUS_DataDir := '%sourceDataDir%/LUS_Germany';
+	}
+}

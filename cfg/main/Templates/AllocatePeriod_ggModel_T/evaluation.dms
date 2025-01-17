@@ -1,0 +1,2609 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project Freiraumflächen 2030                                                 //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                                  2023                                                                      //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+container evaluation: Descr = "This container contains several evaluation indicators for simulation results"
+{
+	container Total
+	{
+		container TotalOrgLanduse:=
+			for_each_nedv(
+				  ModelType/Name
+				, 'sum(
+					  UInt32(Prev_landuse == value('+String(ID(ModelType))+', ModelType)) 
+				  )'
+				, void, UInt32
+			)
+		,	Descr = "Total current land use";
+
+		container TotalMinClaims := 
+			for_each_nedv(
+				  AllocType/Name
+				, 'sum(CaseData/MinClaims/'+AllocType/Name+')'
+				, void, UInt32
+			)
+		,	Descr = "Total Minimm Claims";
+
+		container TotalMaxClaims := 
+			for_each_nedv(
+				  AllocType/Name
+				, 'sum(CaseData/MaxClaims/'+AllocType/Name+')'
+				, void, UInt32
+			)
+		,	Descr = "Total Maxmum Claims";
+
+		container AllocatedLanduse := 
+			for_each_nedv(
+				  AllocType/Name
+				, 'sum(
+					  UInt32(Endogenous == value('+String(ID(AllocType))+', AllocType)) 
+				  )'
+				, void, UInt32
+			)
+		,	Descr = "Total landuse after allocation";
+
+		container MinClaimRealisation := 
+			for_each_nedv(
+				  AllocType/Name
+				, 'Float32(AllocatedLanduse/'+AllocType/Name+') / Float32(TotalMinClaims/'+AllocType/Name+')'
+				, void, Float32)
+		,	Descr = "Degree to which initial demand is allocated";
+		
+		container MaxClaimRealisation := 
+			for_each_nedv(
+				  AllocType/Name
+				, 'Float32(AllocatedLanduse/'+AllocType/Name+') / Float32(TotalMaxClaims/'+AllocType/Name+')'
+				, void, Float32)
+		,	Descr = "Degree to which initial demand is allocated";
+	}
+	container Regional
+	{
+		container Kreise
+		{
+			container OrgLanduse := 
+				for_each_nedv(
+					  ModelType/Name
+					, 'sum(
+						  UInt32(present/landuse/germany == value('+String(ID(ModelType))+', ModelType)) 
+						, Geography/RegionGrids/Kreise
+					  )'
+					, Geography/RegionDomains/Kreise
+					, UInt32
+				)
+			,	Descr = "Total current land use";
+	
+			container MinClaims := 
+				for_each_nednv(
+					  AllocType/Name
+					, 'CaseData/MinClaims/'+AllocType/Name
+					, Claims
+					, AllocType/Name+'/RegionUnit'
+					,UInt32
+				)
+			,	Descr = "Total minimum land demand";
+	
+			container MaxClaims := 
+				for_each_nednv(
+					  AllocType/Name
+					, 'CaseData/MaxClaims/'+AllocType/Name
+					, Claims
+					, AllocType/Name+'/RegionUnit'
+					,UInt32
+				)
+			,	Descr = "Total maximum land demand";
+	
+			container AllocatedLanduse := 
+				for_each_nedv(
+					  AllocType/Name
+					, 'sum(
+						  UInt32(Endogenous == value('+String(ID(AllocType))+', AllocType)) 
+						, Geography/RegionGrids/Kreise
+					  )'
+					, Geography/RegionDomains/Kreise
+					, UInt32)
+			,	Descr = "Total allocated land use";
+			
+			container UrbanArea: Descr = "Changes in Urban Area"
+			{
+				attribute <float32> UrbanArea2022 (Geography/RegionDomains/Kreise):=	sum(float32(Present/landuse/IsUrban), Geography/RegionGrids/Kreise);
+				attribute <float32> UrbanAreaModel (Geography/RegionDomains/Kreise):=	sum(float32(results/LandUse/AnderungenVorherigerZeitschritt/IsUrban), Geography/RegionGrids/Kreise);
+				attribute <float32> UrbanGrowthAbsolute (Geography/RegionDomains/Kreise):=	UrbanAreaModel - UrbanArea2022;
+				attribute <float32> UrbanGrowthRelative (Geography/RegionDomains/Kreise):=	UrbanGrowthAbsolute / UrbanArea2022 * value(100, float32);
+			
+				container FromTo : Descr = "Changes from one land-use class to another" 
+				{		
+					attribute <float32> ArableToUrban (Geography/RegionDomains/Kreise)
+					:			 =	sum(float32(results/landuse/AnderungenSeit2022/ZuUrban && results/landuse/AnderungenSeit2022/VonArable), Geography/RegionGrids/Kreise);
+					
+					attribute <float32> PastureToUrban (Geography/RegionDomains/Kreise)
+					:			 =	sum(float32(results/landuse/AnderungenSeit2022/ZuUrban && results/landuse/AnderungenSeit2022/VonPasture), Geography/RegionGrids/Kreise);
+						
+					attribute <float32> AgricultureToUrban (Geography/RegionDomains/Kreise)
+					:			 =	sum(float32(results/landuse/AnderungenSeit2022/ZuUrban && results/landuse/AnderungenSeit2022/VonAgriculture), Geography/RegionGrids/Kreise);
+	
+					attribute <float32> ArableToUrbanPercent (Geography/RegionDomains/Kreise)
+					:			 =	ArableToUrban / float32(results/LandUse/evaluation/Regional/OrgLanduse/arable);
+					
+					attribute <float32> PastureToUrbanPercent (Geography/RegionDomains/Kreise)
+					:			 =	PastureToUrban / float32(results/LandUse/evaluation/Regional/OrgLanduse/pasture);
+					
+					attribute <float32> AgricultureToUrbanPercent (Geography/RegionDomains/Kreise)
+					:			 =	PastureToUrban / float32(results/LandUse/evaluation/Regional/OrgLanduse/arable + results/LandUse/evaluation/Regional/OrgLanduse/pasture);
+				}
+			}
+
+			container MinClaimRealisation := 
+				for_each_nedv(
+					  AllocType/Name
+					, 'Float32(AllocatedLanduse/'+AllocType/Name+') / Float32(MinClaims/'+AllocType/Name+')'
+					, Geography/RegionDomains/Kreise
+					, ratio)
+			,	Descr = "Degree to which initial demand is allocated";
+			
+			container MaxClaimRealisation := 
+				for_each_nedv(
+					  AllocType/Name
+					, 'Float32(AllocatedLanduse/'+AllocType/Name+') / Float32(MaxClaims/'+AllocType/Name+')'
+					, Geography/RegionDomains/Kreise
+					, ratio)
+			,	Descr = "Degree to which initial demand is allocated";
+		}
+		
+		container Gemeinden
+		{
+			container OrgLanduse := 
+				for_each_nedv(
+					  ModelType/Name
+					, 'sum(
+						  UInt32(present/landuse/germany == value('+String(ID(ModelType))+', ModelType)) 
+						, Geography/RegionGrids/Gemeinden
+					  )'
+					, Geography/RegionDomains/Gemeinden
+					, UInt32
+				)
+			,	Descr = "Total current land use";
+
+			container AllocatedLanduse := 
+				for_each_nedv(
+					  AllocType/Name
+					, 'sum(
+						  UInt32(Endogenous == value('+String(ID(AllocType))+', AllocType)) 
+						, Geography/RegionGrids/Gemeinden
+					  )'
+					, Geography/RegionDomains/Gemeinden
+					, UInt32)
+			,	Descr = "Total allocated land use";
+	
+			container ChangeLanduse := 
+				for_each_nedv(
+					  AllocType/Name
+					, '(Float32(Gemeinden/AllocatedLanduse/'+AllocType/Name+') / Float32(Gemeinden/OrgLanduse/'+AllocType/Name+') - float32(1)) * float32(100)'
+					, Geography/RegionDomains/Gemeinden
+					, ratio)
+			,	Descr = "Percent change in land use for municipalities";
+		}
+		
+		container reg_count
+		{    
+			container units   
+			{      
+				unit<uint32> Domain: nrofrows = 10;      
+				unit<uint8>  RegioA: nrofrows = 5;      
+				unit<uint8>  RegioB: nrofrows  = 3;      
+				unit<uint8>  Class:  nrofrows = 4      
+				{         
+					attribute<string> label: ['Class1','Class2','Class3','Class4'];
+		        }   
+		     }   
+		     container regios   
+		     {      
+			     attribute<units/RegioA> A (units/Domain):[0,0,1,2,3,0,4,2,1,0];      
+			     attribute<units/RegioB> B (units/Domain):[1,0,2,2,0,0,1,2,1,0];      
+			 }   
+			 attribute<units/Class> src  (units/Domain): [0,1,3,2,0,1,2,1,0,3];   
+			 attribute<string>      refs (units/Class) : ['A','A','B','A'];      
+			 
+			 container attributes := reg_count(         
+			 							    src         
+			 							  , units/Class/label         
+			 							  , Regios         
+			 							  , refs     
+			 							  );
+		}
+
+	}
+	container Local
+	{
+		container DifferenceMaps := 
+			for_each_nedv(
+				  ModelType/Name,
+				' Int8(Model      == value('+String(ID(ModelType))+', ModelType)) 
+				- Int8(present/landuse/germany == value('+String(ID(ModelType))+', ModelType))'
+				, domain_grid, Int8
+			)
+		,	Descr = "Difference allocation - current landuse";
+		
+		container Current: Descr = "Analysis of current situation on local level in policy-sensitive areas"
+		{
+			container Urban: Descr = "Situation in urban land use types"
+			{
+				container Nature_Protection: Descr = "Current urban area in nature protection areas"
+				{
+					attribute <YesOrNo> CurrUrbanInNatureReserves     (domain_grid) :=    present/landuse/IsUrban 
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Urban area (alloc) in Nature reserves";
+					attribute <YesOrNo> CurrUrbanInNationalParks     (domain_grid): 
+						  =    present/landuse/IsUrban 
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Urban area (alloc) in National Parks";
+					attribute <YesOrNo> CurrUrbanInFFH     (domain_grid): 
+						  =    present/landuse/IsUrban 
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Urban area (alloc) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> CurrUrbanInSPA     (domain_grid): 
+						  =    present/landuse/IsUrban 
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Urban area (alloc) in Bird protection areas";
+					attribute <YesOrNo> CurrUrbanInRamsar     (domain_grid): 
+						  =    present/landuse/IsUrban 
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Urban area (alloc) in Ramsar areas";
+					attribute <YesOrNo> CurrUrbanInBiosphereCore     (domain_grid): 
+						  =    present/landuse/IsUrban 
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy_Levels), Label = "Urban area (alloc) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> CurrUrbanInBiosphereDev     (domain_grid): 
+						  =    present/landuse/IsUrban 
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Urban area (alloc) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> CurrUrbanInLSG     (domain_grid): 
+						  =    present/landuse/IsUrban 
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Urban area (alloc) in Landscape protection areas";
+							    
+					attribute <YesOrNo> CurrUrbanAllInNatureProtectionAreas    (domain_grid): 
+						 = CurrUrbanInNatureReserves 
+							   || CurrUrbanInNationalParks
+							   || CurrUrbanInFFH
+							   || CurrUrbanInSpa
+							   || CurrUrbanInRamsar
+							   || CurrUrbanInBiosphereCore
+							   || CurrUrbanInBiosphereDev > value(0, YesOrNo), Label = "Current urban area in all nature protection policy areas";
+					
+				    attribute <YesOrNo> CurrUrbanAllInNatureProtectionAreasAll    (domain_grid):
+						 = CurrUrbanInNatureReserves 
+							   || CurrUrbanInNationalParks
+							   || CurrUrbanInFFH
+							   || CurrUrbanInSpa
+							   || CurrUrbanInRamsar
+							   || CurrUrbanInLSG
+							   || CurrUrbanInBiosphereCore
+							   || CurrUrbanInBiosphereDev > value(0, YesOrNo), Label = "Current Urban area in all nature protection policy areas incl. LSG";
+							   
+					attribute <YesOrNo> CurrUrbanAllInNatureProtectionAreasHigh    (domain_grid):
+						=CurrUrbanInNatureReserves 
+							   ||CurrUrbanInNationalParks
+							   ||CurrUrbanInFFH
+							   ||CurrUrbanInSpa
+							   ||CurrUrbanInBiosphereCore, Label = "Current urban area in all nature protection policy areas with high status";
+							   
+					attribute <YesOrNo> CurrUrbanAllInNatureProtectionAreasLow    (domain_grid):
+						=CurrUrbanInRamsar
+							   ||CurrUrbanInLSG
+							   ||CurrUrbanInBiosphereDev > value(0, YesOrNo), Label = "Current urban area in all nature protection policy areas with low status";
+							   
+				}
+				container Nature_Landscape: Descr = "Current urban area in nature and landscape areas (non-policy)"
+				{
+					attribute <YesOrNo> CurrUrbanInUnfragmentedSpace     (domain_grid):=   present/landuse/IsUrban
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Urban area in Unfragmented Spaces";
+					attribute <YesOrNo> CurrUrbanInSoilQuality     (domain_grid):=   present/landuse/IsUrban 
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Urban area in areas with high soil quality";
+					attribute <YesOrNo> CurrUrbanInHQ100     (domain_grid):=   present/landuse/IsUrban 
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Urban area in flooded areas";
+					attribute <YesOrNo> CurrUrbanInHQ200     (domain_grid):=   present/landuse/IsUrban 
+							    && Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim > value(0, Uint2), Label = "Urban area in flooded areas (HQ200)";
+					attribute <YesOrNo> CurrUrbanInHQextr     (domain_grid):=   present/landuse/IsUrban 
+							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Urban area in flooded areas (HQ200)";
+					attribute <YesOrNo> CurrUrbanInLandslides     (domain_grid):=   present/landuse/IsUrban 
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+				}
+				container Policy_Areas: Descr = "Current urban area in policy areas"
+				{
+					attribute <YesOrNo> CurrUrbanInFloodProtectedAreas     (domain_grid):=   present/landuse/IsUrban && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Urban area in flood protection areas";
+					attribute <YesOrNo> CurrUrbanInSettlement     (domain_grid):=   present/landuse/IsUrban&& Present/policy_maps/settlement > value(0, Policy), Label = "Urban within Settlement areas";
+				}
+				container Restriction_Areas: Descr = "Current urban area in restricted areas"
+				{
+					attribute <YesOrNo> CurrUrbanInBufferWEA     (domain_grid):=   present/landuse/IsUrban && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Urban within the buffer of wind power stations";
+				}
+			}
+			
+			container Urban_oUG: Descr = "Situation in urban land use types"
+			{
+				container Nature_Protection: Descr = "Current urban area (_oUG) in nature protection areas"
+				{
+					attribute <YesOrNo> CurrUrban_oUGInNatureReserves     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Urban area (_oUG) in Nature reserves";
+					attribute <YesOrNo> CurrUrban_oUGInNationalParks     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Urban area (_oUG) in National Parks";
+					attribute <YesOrNo> CurrUrban_oUGInFFH     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Urban area (_oUG) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> CurrUrban_oUGInSPA     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Urban area (_oUG) in Bird protection areas";
+					attribute <YesOrNo> CurrUrban_oUGInRamsar     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Urban area (_oUG) in Ramsar areas";
+					attribute <YesOrNo> CurrUrban_oUGInBiosphereCore     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Urban area (_oUG) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> CurrUrban_oUGInBiosphereDev     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Urban area (_oUG) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> CurrUrban_oUGInLSG     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Urban area (_oUG) in Landscape protection areas";
+							    
+					attribute <YesOrNo> CurrUrban_oUGAllInNatureProtectionAreas    (domain_grid):
+						=CurrUrban_oUGInNatureReserves 
+							   ||CurrUrban_oUGInNationalParks
+							   ||CurrUrban_oUGInFFH
+							   ||CurrUrban_oUGInSpa
+							   ||CurrUrban_oUGInRamsar
+							   ||CurrUrban_oUGInBiosphereCore
+							   ||CurrUrban_oUGInBiosphereDev > value(0, YesOrNo), Label = "Urban area (_oUG) in all nature protection policy areas";
+					
+					attribute <YesOrNo> CurrUrban_oUGAllInNatureProtectionAreasAll    (domain_grid):
+						=CurrUrban_oUGInNatureReserves 
+							   ||CurrUrban_oUGInNationalParks
+							   ||CurrUrban_oUGInFFH
+							   ||CurrUrban_oUGInSpa
+							   ||CurrUrban_oUGInRamsar
+							   ||CurrUrban_oUGInLSG
+							   ||CurrUrban_oUGInBiosphereCore
+							   ||CurrUrban_oUGInBiosphereDev > value(0, YesOrNo), Label = "Current Urban area (_oUG) in all nature protection policy areas incl. LSG";
+							   
+					attribute <YesOrNo> CurrUrban_oUGAllInNatureProtectionAreasHigh    (domain_grid):
+						=CurrUrban_oUGInNatureReserves 
+							   ||CurrUrban_oUGInNationalParks
+							   ||CurrUrban_oUGInFFH
+							   ||CurrUrban_oUGInSpa
+							   ||CurrUrban_oUGInBiosphereCore, Label = "Current urban area (_oUG) in all nature protection policy areas with high status";
+							   
+					attribute <YesOrNo> CurrUrban_oUGAllInNatureProtectionAreasLow    (domain_grid):
+						=CurrUrban_oUGInRamsar
+							   ||CurrUrban_oUGInLSG
+							   ||CurrUrban_oUGInBiosphereDev > value(0, YesOrNo), Label = "Current urban area (_oUG) in all nature protection policy areas with low status";
+				}
+				container Nature_Landscape: Descr = "Current urban area in nature and landscape areas (non-policy)"
+				{
+					attribute <YesOrNo> CurrUrban_oUGInUnfragmentedSpace     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Urban area (_oUG) in Unfragmented Spaces";
+					attribute <YesOrNo> CurrUrban_oUGInSoilQuality     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Urban area (_oUG) in areas with high soil quality";
+					attribute <YesOrNo> CurrUrban_oUGInHQ100     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Urban area (_oUG) in flooded areas (JRC-Layer)";
+					attribute <YesOrNo> CurrUrban_oUGInHQ_extr_bafg     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Floods_extr_bafg > value(0, Uint2), Label = "Urban area (_oUG) in flooded areas (BaFG-Layer)";
+					attribute <YesOrNo> CurrUrban_oUGInHQ_combined     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Floods_combined > value(0, Uint2), Label = "Urban area (_oUG) in flooded areas (combined Layers)";
+					attribute <YesOrNo> CurrUrban_oUGInBothHQ_combined     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Floods_combined == value(2, Uint2), Label = "Urban area (_oUG) in flooded areas (combined Layers)";
+					attribute <YesOrNo> CurrUrban_oUGInHQ_L     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim > value(0, Uint2), Label = "Urban area (_oUG) in flooded areas (HQ200)";
+					attribute <YesOrNo> CurrUrban_oUGInHQ_M     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(2, Uint2), Label = "Urban area (_oUG) in flooded areas (HQ100)";
+					attribute <YesOrNo> CurrUrban_oUGInHQ_extr     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Urban area (_oUG) in flooded areas (HQ200)";
+					attribute <YesOrNo> CurrUrbanInLandslides_oUG     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+				}
+				container Policy_Areas: Descr = "Current urban area in policy areas"
+				{
+					attribute <YesOrNo> CurrUrban_oUGInFloodProtectedAreas     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Urban area (_oUG) in flood protection areas";
+					attribute <YesOrNo> CurrUrban_oUGInHighFloodProtectedAreas     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Urban area (_oUG) in high flood protection areas";
+					attribute <YesOrNo> CurrUrban_oUGInSettlement     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/policy_maps/settlement > value(0, Policy), Label = "Urban area (_oUG) within Settlement areas";
+				}
+				container Restriction_Areas: Descr = "Current urban area (_oUG) in restricted areas"
+				{
+					attribute <YesOrNo> CurrUrban_oUGInBufferWEA     (domain_grid):
+						=   present/landuse/IsUrban_oUG 
+							    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Urban area (_oUG) within the buffer of wind power stations";
+
+				}
+			}
+			
+			container UrbanFabric: Descr = "Situation in urban land use types"
+			{
+				container Nature_Protection: Descr = "Current urban fabric in nature protection areas"
+				{
+					attribute <YesOrNo> CurrUrbanFabricInNatureReserves     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType) 
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Current Urban fabric in Nature reserves";
+					attribute <YesOrNo> CurrUrbanFabricInNationalParks     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType) 
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Current Urban fabric in National Parks";
+					attribute <YesOrNo> CurrUrbanFabricInFFH     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType) 
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Current Urban fabric in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> CurrUrbanFabricInSPA     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType) 
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Current Urban fabric in Bird protection areas";
+					attribute <YesOrNo> CurrUrbanFabricInRamsar     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType) 
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Current Urban fabric in Ramsar areas";
+					attribute <YesOrNo> CurrUrbanFabricInBiosphereCore     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Current Urban fabric in Core areas of Biosphere reserves";
+					attribute <YesOrNo> CurrUrbanFabricInBiosphereDev     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Current Urban fabric in Development areas of Biosphere reserves";
+					attribute <YesOrNo> CurrUrbanFabricInLSG     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Current Urban fabric in Landscape protection areas";
+							    
+					attribute <YesOrNo> CurrUrbanFabricInNatureProtectionAreas    (domain_grid):
+						=CurrUrbanFabricInNatureReserves
+							   ||CurrUrbanFabricInNationalParks
+							   ||CurrUrbanFabricInFFH
+							   ||CurrUrbanFabricInSpa
+							   ||CurrUrbanFabricInRamsar
+							   ||CurrUrbanFabricInBiosphereCore
+							   ||CurrUrbanFabricInBiosphereDev > value(0, YesOrNo), Label = "Current Urban Fabric in all nature protection policy areas";
+					
+					attribute <YesOrNo> CurrUrbanFabricAllInNatureProtectionAreasAll    (domain_grid):
+						=CurrUrbanFabricInNatureReserves 
+							   ||CurrUrbanFabricInNationalParks
+							   ||CurrUrbanFabricInFFH
+							   ||CurrUrbanFabricInSpa
+							   ||CurrUrbanFabricInRamsar
+							   ||CurrUrbanFabricInLSG
+							   ||CurrUrbanFabricInBiosphereCore
+							   ||CurrUrbanFabricInBiosphereDev > value(0, YesOrNo), Label = "Current Urban Fabric in all nature protection policy areas incl. LSG";
+							   
+					attribute <YesOrNo> CurrUrbanFabricAllInNatureProtectionAreasHigh    (domain_grid):
+						=CurrUrbanFabricInNatureReserves 
+							   ||CurrUrbanFabricInNationalParks
+							   ||CurrUrbanFabricInFFH
+							   ||CurrUrbanFabricInSpa
+							   ||CurrUrbanFabricInBiosphereCore, Label = "Current urban fabric in all nature protection policy areas with high status";
+							   
+					attribute <YesOrNo> CurrUrbanFabricAllInNatureProtectionAreasLow    (domain_grid):
+						=CurrUrbanFabricInRamsar
+							   ||CurrUrbanFabricInLSG
+							   ||CurrUrbanFabricInBiosphereDev > value(0, YesOrNo), Label = "Current urban fabric in all nature protection policy areas with low status";
+					
+				}
+				container Nature_Landscape: Descr = "Current urban area in nature and landscape areas (non-policy)"
+				{
+					attribute <YesOrNo> CurrUrbanFabricInUnfragmentedSpace     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Current Urban Fabric in Unfragmented Spaces";
+					attribute <YesOrNo> CurrUrbanFabricInSoilQuality     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Current Urban Fabric in areas with high soil quality";
+					attribute <YesOrNo> CurrUrbanFabricInHQ100     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Current Urban Fabric in flooded areas";
+					attribute <YesOrNo> CurrUrbanFabricInHQextr     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Current Urban Fabric in flooded areas";
+				}
+				container Policy_Areas: Descr = "Current urban area in policy areas"
+				{
+					attribute <YesOrNo> CurrUrbanFabricInFloodProtectedAreas_Low    (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Current Urban Fabric in flood protection areas with low policy";
+					attribute <YesOrNo> CurrUrbanFabricInFloodProtectedAreas_High    (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Current Urban Fabric in flood protection areas with high policy";
+					attribute <YesOrNo> CurrUrbanFabricInFloodProtectedAreas     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Current Urban Fabric in flood protection areas";
+					attribute <YesOrNo> CurrUrbanFabricInMineralPlanningHigh     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/mineral_planning > value(1, Policy_Levels), Label = "Current Urban Fabric in mineral planning areas";
+					attribute <YesOrNo> CurrUrbanFabricInResidential     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/Residential > value(0, Policy), Label = "Current Urban Fabric within Residential areas";
+					attribute <YesOrNo> CurrUrbanFabricInSettlement     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/policy_maps/settlement > value(0, Policy), Label = "Current Urban Fabric within Settlement areas";
+				}
+				container Restriction_Areas: Descr = "Current urban area in restricted areas"
+				{
+					attribute <YesOrNo> CurrUrbanFabricInPowerPlantBuffer     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/restriction_maps/kraftwerke > value(0, Policy_Levels), Label = "Urban Fabric in the buffer area of a power station";
+					attribute <YesOrNo> CurrUrbanFabricInNoiseAirport_zone1     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/restriction_maps/fluglaerm > value(1, Policy_Levels), Label = "Urban Fabric within the >65db noise area of airports";
+					attribute <YesOrNo> CurrUrbanFabricInNoiseAirport_zone2     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/restriction_maps/fluglaerm > value(0, Policy_Levels), Label = "Urban Fabric within the >60db noise area of airports";
+					attribute <YesOrNo> CurrUrbanFabricInBufferWEA     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Urban Fabric within the buffer of wind power stations";
+					attribute <YesOrNo> CurrUrbanFabricInNoiseRailway_zone1     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/restriction_maps/bahnlaerm >= value(59, Float32), Label = "Urban Fabric within the >59db noise area of railroad tracks";
+					attribute <YesOrNo> CurrUrbanFabricInNoiseRailway_zone2     (domain_grid):
+						=   present/landuse/germany == value (1, ModelType)
+							    && Present/restriction_maps/bahnlaerm >= value(64, Float32), Label = "Urban Fabric within the >64db noise area of railroad tracks";
+				}
+			}
+			container Industry: Descr = "Situation in urban land use types"
+			{
+				container Nature_Protection: Descr = "Current urban area in nature protection areas"
+				{
+					attribute <YesOrNo> CurrIndustryInNatureReserves     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Current Industry in Nature reserves";
+					attribute <YesOrNo> CurrIndustryInNationalParks     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Current Industry in National Parks";
+					attribute <YesOrNo> CurrIndustryInFFH     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Current Industry in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> CurrIndustryInSPA     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Current Industry in Bird protection areas";
+					attribute <YesOrNo> CurrIndustryInRamsar     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Current Industry in Ramsar areas";
+					attribute <YesOrNo> CurrIndustryInBiosphereCore     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Current Industry in Core areas of Biosphere reserves";
+					attribute <YesOrNo> CurrIndustryInBiosphereDev     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Current Industry in Development areas of Biosphere reserves";
+					attribute <YesOrNo> CurrIndustryInLSG     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Current Industry in Landscape protection areas";
+							    
+					attribute <YesOrNo> CurrIndustryInNatureProtectioAreas    (domain_grid):
+						=CurrIndustryInNatureReserves
+							   ||CurrIndustryInNationalParks
+							   ||CurrIndustryInFFH
+							   ||CurrIndustryInSpa
+							   ||CurrIndustryInRamsar
+							   ||CurrIndustryInBiosphereCore
+							   ||CurrIndustryInBiosphereDev > value(0, YesOrNo), Label = "Current Industry in all nature protection policy areas";
+					
+					attribute <YesOrNo> CurrIndustryAllInNatureProtectionAreasAll    (domain_grid):
+						=CurrIndustryInNatureReserves
+							   ||CurrIndustryInNationalParks
+							   ||CurrIndustryInFFH
+							   ||CurrIndustryInSpa
+							   ||CurrIndustryInRamsar
+							   ||CurrIndustryInLSG
+							   ||CurrIndustryInBiosphereCore
+							   ||CurrIndustryInBiosphereDev > value(0, YesOrNo), Label = "Current Urban area in all nature protection policy areas incl. LSG";
+							   
+					attribute <YesOrNo> CurrIndustryAllInNatureProtectionAreasHigh    (domain_grid):
+						=CurrIndustryInNatureReserves
+							   ||CurrIndustryInNationalParks
+							   ||CurrIndustryInFFH
+							   ||CurrIndustryInSpa
+							   ||CurrIndustryInBiosphereCore, Label = "Current urban area in all nature protection policy areas with high status";
+							   
+					attribute <YesOrNo> CurrIndustryAllInNatureProtectionAreasLow    (domain_grid):
+						=CurrIndustryInRamsar
+							   ||CurrIndustryInLSG
+							   ||CurrIndustryInBiosphereDev > value(0, YesOrNo), Label = "Current urban area in all nature protection policy areas with low status";
+				}
+				container Nature_Landscape: Descr = "Current Industry in nature and landscape areas (non-policy)"
+				{
+					attribute <YesOrNo> CurrIndustryInUnfragmentedSpace     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Urban area in Unfragmented Spaces";
+					attribute <YesOrNo> CurrIndustryInSoilQuality     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Urban area in areas with high soil quality";
+					attribute <YesOrNo> CurrIndustryInHQ100     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Urban area in flooded areas";
+					attribute <YesOrNo> CurrIndustryInHQextr     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Urban area in flooded areas";
+				}
+				container Policy_Areas: Descr = "Current industry in policy areas"
+				{
+					attribute <YesOrNo> CurrIndustryInFloodProtectedAreas_Low    (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Current Urban Fabric in flood protection areas with low policy";
+					attribute <YesOrNo> CurrIndustryInFloodProtectedAreas_High    (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Current Urban Fabric in flood protection areas with high policy";
+					attribute <YesOrNo> CurrIndustryInFloodProtectedAreas     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Industry in flood protection areas";
+					attribute <YesOrNo> CurrIndustryInIndustryCommercial     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/industry_commercial > value(0, Policy_Levels), Label = "Industry within Industry & Commercial areas";
+					attribute <YesOrNo> CurrIndustryInRetail     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/retail > value(0, Policy_Levels), Label = "Industry within Retail areas";
+					attribute <YesOrNo> CurrIndustryInSettlement     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/policy_maps/settlement > value(0, Policy), Label = "Industry within Settlement areas";
+				}
+				container Restriction_Areas: Descr = "Current urban area in restricted areas"
+				{
+					attribute <YesOrNo> CurrIndustryInBufferWEA     (domain_grid):
+						=   present/landuse/germany == value (2, ModelType)
+							    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Industry within the buffer of wind power stations";
+				}
+			}
+			
+			container Infrastructure: Descr = "Situation in urban land use types"
+			{
+				
+				container Policy_Areas: Descr = "Current industry in policy areas"
+				{
+					attribute <YesOrNo> CurrInfrastructureInFloodProtectedAreas_Low    (domain_grid):
+						=   present/landuse/germany == value (3, ModelType)
+							    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Current Urban Fabric in flood protection areas with low policy";
+					attribute <YesOrNo> CurrInfrastructureInFloodProtectedAreas_High    (domain_grid):
+						=   present/landuse/germany == value (3, ModelType)
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Current Urban Fabric in flood protection areas with high policy";
+					attribute <YesOrNo> CurrInfrastructureInFloodProtectedAreas     (domain_grid):
+						=   present/landuse/germany == value (3, ModelType)
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Industry in flood protection areas";
+					
+				}
+			}
+			
+			container GreenUrban: Descr = "Situation in urban land use types"
+			{
+				container Nature_Protection: Descr = "Current Green Urban area in nature protection areas"
+				{
+					attribute <YesOrNo> CurrGreenUrbanInNatureReserves     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Current Green Urban in Nature reserves";
+					attribute <YesOrNo> CurrGreenUrbanInNationalParks     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Current Green Urban in National Parks";
+					attribute <YesOrNo> CurrGreenUrbanInFFH     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Current Green Urban in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> CurrGreenUrbanInSPA     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Current Green Urban in Bird protection areas";
+					attribute <YesOrNo> CurrGreenUrbanInRamsar     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Current Green Urban in Ramsar areas";
+					attribute <YesOrNo> CurrGreenUrbanInBiosphereCore     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Current Green Urban in Core areas of Biosphere reserves";
+					attribute <YesOrNo> CurrGreenUrbanInBiosphereDev     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Current Green Urban in Development areas of Biosphere reserves";
+					attribute <YesOrNo> CurrGreenUrbanInLSG     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Current Green Urban in Landscape protection areas";
+							    
+					attribute <YesOrNo> CurrGreenUrbanInNatureProtectioAreas    (domain_grid):
+						=CurrGreenUrbanInNatureReserves
+							   ||CurrGreenUrbanInNationalParks
+							   ||CurrGreenUrbanInFFH
+							   ||CurrGreenUrbanInSpa
+							   ||CurrGreenUrbanInRamsar
+							   ||CurrGreenUrbanInBiosphereCore
+							   ||CurrGreenUrbanInBiosphereDev > value(0, YesOrNo), Label = "Current Green Urban in all nature protection policy areas";
+							   
+					attribute <YesOrNo> CurrGreenUrbanAllInNatureProtectionAreasAll    (domain_grid):
+						=CurrGreenUrbanInNatureReserves
+							   ||CurrGreenUrbanInNationalParks
+							   ||CurrGreenUrbanInFFH
+							   ||CurrGreenUrbanInSpa
+							   ||CurrGreenUrbanInRamsar
+							   ||CurrGreenUrbanInLSG
+							   ||CurrGreenUrbanInBiosphereCore
+							   ||CurrGreenUrbanInBiosphereDev > value(0, YesOrNo), Label = "Current Green Urban in all nature protection policy areas incl. LSG";
+							   
+					attribute <YesOrNo> CurrGreenUrbanAllInNatureProtectionAreasHigh    (domain_grid):
+						=CurrGreenUrbanInNatureReserves
+							   ||CurrGreenUrbanInNationalParks
+							   ||CurrGreenUrbanInFFH
+							   ||CurrGreenUrbanInSpa
+							   ||CurrGreenUrbanInBiosphereCore, Label = "Current green urban in all nature protection policy areas with high status";
+							   
+					attribute <YesOrNo> CurrGreenUrbanAllInNatureProtectionAreasLow    (domain_grid):
+						=CurrGreenUrbanInRamsar
+							   ||CurrGreenUrbanInLSG
+							   ||CurrGreenUrbanInBiosphereDev > value(0, YesOrNo), Label = "Current urban area (_oUG) in all nature protection policy areas with low status";
+				}
+				container Nature_Landscape: Descr = "Current Green Urban in nature and landscape areas (non-policy)"
+				{
+					attribute <YesOrNo> CurrGreenUrbanInSoilQuality     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Green Urban in areas with high soil quality";
+					attribute <YesOrNo> CurrGreenUrbanInHQ100     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Green Urban in flooded areas";
+				}
+				container Policy_Areas: Descr = "Current Green Urban in policy areas"
+				{
+					attribute <YesOrNo> CurrGreenUrbanInFloodProtectedAreas     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Green Urban in flood protection areas";
+					attribute <YesOrNo> CurrGreenUrbanInGreenCorridor     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/green_corridor > value(0, Policy_Levels), Label = "Green Urban within Green Corridors";
+					attribute <YesOrNo> CurrGreenUrbanInAgriculture     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/agriculture > value(0, Policy_Levels), Label = "Green Urban within Agriculture areas";
+					attribute <YesOrNo> CurrGreenUrbanInForest     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/forestry > value(0, Policy), Label = "Green Urban within Forest areas";
+					attribute <YesOrNo> CurrGreenUrbanInSports     (domain_grid):
+						=   present/landuse/germany == value (7, ModelType)
+							    && Present/policy_maps/sports > value(0, Policy), Label = "Green Urban within Sports areas";
+				}
+			}
+			
+			
+			container OtherLU: Descr = "Situation in other land use types"
+			{
+				container Nature_Protection: Descr = "Current land use types in nature protection areas"
+				{
+					attribute <YesOrNo> CurrArableInNatureReserves     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Arable land (alloc) in Nature reserves";
+					attribute <YesOrNo> CurrArableInNationalParks     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Arable area (alloc) in National Parks";
+					attribute <YesOrNo> CurrArableInFFH     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Arable area (alloc) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> CurrArableInSPA     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Arable area (alloc) in Bird protection areas";
+					attribute <YesOrNo> CurrArableInRamsar     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Arable area (alloc) in Ramsar areas";
+					attribute <YesOrNo> CurrArableInBiosphereCore     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Arable area (alloc) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> CurrArableInBiosphereDev     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Arable area (alloc) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> CurrArableInLSG     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Arable area (alloc) in Landscape protection areas";
+					
+					attribute <YesOrNo> CurrArableAllInNatureProtectioAreas    (domain_grid):
+						=CurrArableInNatureReserves
+							   ||CurrArableInNationalParks
+							   ||CurrArableInFFH
+							   ||CurrArableInSpa
+							   ||CurrArableInRamsar
+							   ||CurrArableInBiosphereCore
+							   ||CurrArableInBiosphereDev > value(0, YesOrNo), Label = "Arable area (alloc) in all nature protection policy areas";
+							   
+					attribute <YesOrNo> CurrPastureInNatureReserves     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Pasture land (alloc) in Nature reserves";
+					attribute <YesOrNo> CurrPastureInNationalParks     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Pasture area (alloc) in National Parks";
+					attribute <YesOrNo> CurrPastureInFFH     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Pasture area (alloc) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> CurrPastureInSPA     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Pasture area (alloc) in Bird protection areas";
+					attribute <YesOrNo> CurrPastureInRamsar     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Pasture area (alloc) in Ramsar areas";
+					attribute <YesOrNo> CurrPastureInBiosphereCore     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Pasture area (alloc) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> CurrPastureInBiosphereDev     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Pasture area (alloc) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> CurrPastureInLSG     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Pasture area (alloc) in Landscape protection areas";
+							    
+					attribute <YesOrNo> CurrPastureAllInNatureProtectioAreas    (domain_grid):
+						=CurrPastureInNatureReserves
+							   ||CurrPastureInNationalParks
+							   ||CurrPastureInFFH
+							   ||CurrPastureInSpa
+							   ||CurrPastureInRamsar
+							   ||CurrPastureInBiosphereCore
+							   ||CurrPastureInBiosphereDev > value(0, YesOrNo), Label = "Pasture area (alloc) in all nature protection policy areas";
+				}
+				
+				container Nature_Landscape: Descr = "Current land use types in nature and landscape areas (non-policy)"
+				{
+					attribute <YesOrNo> CurrArableInUnfragmentedSpace     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Arable area (alloc) in Unfragmented Spaces";
+					attribute <YesOrNo> CurrArableInSoilQuality     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Arable area (alloc) in areas with high soil quality";
+					attribute <YesOrNo> CurrArableInHQ100     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Arable area (alloc) in flooded areas";
+							    
+					attribute <YesOrNo> CurrPastureInUnfragmentedSpace     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Pasture area (alloc) in Unfragmented Spaces";
+					attribute <YesOrNo> CurrPastureInSoilQuality     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Pasture area (alloc) in areas with high soil quality";
+					attribute <YesOrNo> CurrPastureInHQ100     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Pasture area (alloc) in flooded areas";
+				}
+				
+				container Policy_Areas: Descr = "Current land use types in policy areas"
+				{
+					attribute <YesOrNo> CurrArableInFloodProtectedAreas     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Arable area (alloc) in flood protection areas";
+
+					attribute <YesOrNo> CurrPastureInFloodProtectedAreas     (domain_grid):
+						=   present/landuse/IsPasture
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Pasture area (alloc) in flood protection areas";
+				}
+					
+			}
+		}
+
+		container UrbanDev_Areas: Descr = "Urban area (alloc) in policy-sensitive areas"
+			{
+				container Nature_protection: Descr = "Urban area (alloc) in nature protection policy areas"
+				{				
+					attribute <YesOrNo> UrbanInNatureReserves     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Urban area (alloc) in Nature reserves";
+					attribute <YesOrNo> UrbanInNationalParks     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Urban area (alloc) in National Parks";
+					attribute <YesOrNo> UrbanInFFH     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Urban area (alloc) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> UrbanInSPA     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Urban area (alloc) in Bird protection areas";
+					attribute <YesOrNo> UrbanInRamsar     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Urban area (alloc) in Ramsar areas";
+					attribute <YesOrNo> UrbanInBiosphereCore     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy_Levels), Label = "Urban area (alloc) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> UrbanInBiosphereDev     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Urban area (alloc) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> UrbanInLSG     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Urban area (alloc) in Landscape protection areas";
+					
+					attribute <YesOrNo> UrbanAllInNatureProtectionAreas    (domain_grid):
+						=UrbanInNatureReserves
+							   ||UrbanInNationalParks
+							   ||UrbanInFFH
+							   ||UrbanInSpa
+							   ||UrbanInRamsar
+							   ||UrbanInBiosphereCore
+							   ||UrbanInBiosphereDev > value(0, YesOrNo), Label = "Urban area (alloc) in all nature protection policy areas";
+							   
+					attribute <YesOrNo> UrbanAllInNatureProtectionAreasAll    (domain_grid):
+						=UrbanInNatureReserves
+							   ||UrbanInNationalParks
+							   ||UrbanInFFH
+							   ||UrbanInSpa
+							   ||UrbanInRamsar
+							   ||UrbanInLSG
+							   ||UrbanInBiosphereCore
+							   ||UrbanInBiosphereDev > value(0, YesOrNo), Label = "Urban area (alloc) in all nature protection policy areas incl. LSG";
+							   
+					attribute <YesOrNo> UrbanAllInNatureProtectionAreasHigh    (domain_grid):
+						=UrbanInNatureReserves
+							   ||UrbanInNationalParks
+							   ||UrbanInFFH
+							   ||UrbanInSpa
+							   ||UrbanInBiosphereCore, Label = "Urban area (alloc) in all nature protection policy areas with high status";
+							   
+					attribute <YesOrNo> UrbanAllInNatureProtectionAreasLow    (domain_grid):
+						=UrbanInRamsar
+							   ||UrbanInLSG
+							   ||UrbanInBiosphereDev > value(0, YesOrNo), Label = "Urban area (alloc) in all nature protection policy areas with low status";
+							   
+					attribute <YesOrNo> ActualUrbanInNatureProtectionAll     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban
+							    && Present/policy_maps/AllNatureProtectionAreasInclLSG == value(True, Bool), Label = "Actual Urban area (alloc) in Nature Protection Areas";
+					
+					attribute <YesOrNo> ActualUrbanInNatureProtectionHigh     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban
+							    && Present/policy_maps/AllNatureProtectionAreasHigh == value(True, Bool), Label = "Actual Urban area (alloc) in Nature Protection Areas with high status";
+					
+					attribute <YesOrNo> ActualUrbanInNatureProtectionLow     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban
+							    && Present/policy_maps/AllNatureProtectionAreasLow == value(True, Bool), Label = "Actual Urban area (alloc) in Nature Protection Areas with low status";
+					
+				}
+				container NatureLandscape: Descr = "Urban area (alloc) in Nature and Landscape areas (non policy areas)"
+				{
+					attribute <YesOrNo> UrbanInUnfragmentedSpace     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, Policy), Label = "Urban area (alloc) in Unfragmented Spaces";
+					attribute <YesOrNo> UrbanInSoilQuality     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Urban area (alloc) in areas with high soil quality";
+					attribute <YesOrNo> UrbanInSoilQuality80     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(80, msqr), Label = "Urban area (alloc) in areas with highest soil quality";
+					attribute <YesOrNo> UrbanInFreeLand     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Urban area (alloc) in Free Land";
+					attribute <YesOrNo> UrbanInHQ100     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Urban area (alloc) in flooded areas";
+					attribute <YesOrNo> UrbanInHQextr     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Urban area (alloc) in flooded areas";
+					attribute <YesOrNo> UrbanInLandslides     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+				}
+				container Policy_Areas: Descr = "Urban area (alloc) in policy restricted areas"
+				{
+					attribute <YesOrNo> UrbanInFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Urban area (alloc) in flood protection areas";
+					attribute <YesOrNo> UrbanInHighFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Urban area (alloc) in high flood protection areas";
+					attribute <YesOrNo> UrbanInGreenCorridors     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Urban area (alloc) in green corridors";
+					attribute <YesOrNo> UrbanInHighGreenCorridors     (domain_grid):
+								=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Urban area (alloc) in in green corridors with high policy level";
+					attribute <YesOrNo> UrbanInMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Urban area (alloc) in policy areas with high policy level for mineral extraction";
+					attribute <YesOrNo> UrbanInHighMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Urban area (alloc) in Planned areas for mineral extraction";
+					attribute <YesOrNo> UrbanInNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Urban area (alloc) in Policy areas for Nature and Landscape";
+					attribute <YesOrNo> UrbanInHighNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Urban area (alloc) in Policy areas for Nature and Landscape with high policy level";
+					attribute <YesOrNo> UrbanInGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Urban area (alloc) in Ground surface water protection areas";
+					attribute <YesOrNo> UrbanInHighGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Urban area (alloc) in Ground surface water protection areas with high policy level";
+					attribute <YesOrNo> UrbanInOpenSpace     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/open_space > value(0, Policy), Label = "Urban area (alloc) in Open Space areas";
+					attribute <YesOrNo> UrbanInAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Urban area (alloc) in Agriculture protection areas";
+					attribute <YesOrNo> UrbanInHighAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Urban area (alloc) in Agriculture protection areas with high policy level";
+					attribute <YesOrNo> UrbanInForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Urban area (alloc) in Forestry protection areas";
+					attribute <YesOrNo> UrbanInHighForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Urban area (alloc) in Forestry protection areas with high policy level";
+					attribute <YesOrNo> UrbanInResidential     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/Residential > value(0, Policy), Label = "Urban area (alloc) in Residential areas";
+					attribute <YesOrNo> UrbanInSettlement    (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/policy_maps/settlement > value(0, Policy), Label = "Urban area (alloc) in Settlement areas";
+					attribute <YesOrNo> LossUrbanInFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Loss of Urban area (alloc) in flood protection areas";
+					attribute <YesOrNo> LossUrbanInHighFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Loss of Urban area (alloc) in high flood protection areas";
+					attribute <YesOrNo> LossUrbanInGreenCorridors     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Loss of Urban area (alloc) in green corridors";
+					attribute <YesOrNo> LossUrbanInHighGreenCorridors     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Loss of Urban area (alloc) in in green corridors with high policy level";
+					attribute <YesOrNo> LossUrbanInMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Loss of Urban area (alloc) in policy areas with high policy level for mineral extraction";
+					attribute <YesOrNo> LossUrbanInHighMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Loss of Urban area (alloc) in Planned areas for mineral extraction";
+					attribute <YesOrNo> LossUrbanInNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Loss of Urban area (alloc) in Policy areas for Nature and Landscape";
+					attribute <YesOrNo> LossUrbanInHighNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Loss of Urban area (alloc) in Policy areas for Nature and Landscape with high policy level";
+					attribute <YesOrNo> LossUrbanInGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Loss of Urban area (alloc) in Ground surface water protection areas";
+					attribute <YesOrNo> LossUrbanInHighGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Loss of Urban area (alloc) in Ground surface water protection areas with high policy level";
+					attribute <YesOrNo> LossUrbanInOpenSpace     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/open_space > value(0, Policy), Label = "Loss of Urban area (alloc) in Open Space areas";
+					attribute <YesOrNo> LossUrbanFabricInAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Loss of UrbanFabric area (alloc) in Agriculture protection areas";
+					attribute <YesOrNo> LossUrbanInHighAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Urban area (alloc) in Agriculture protection areas with high policy level";
+					attribute <YesOrNo> LossUrbanInForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Urban area (alloc) in Forestry protection areas";
+					attribute <YesOrNo> LossUrbanInHighForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Urban area (alloc) in Forestry protection areas with high policy level";
+							    
+   					attribute <YesOrNo> UrbanAllInHighPolicyAreas    (domain_grid):
+						=UrbanInHighFloodProtectedAreas
+							   ||UrbanInHighGreenCorridors
+							   ||UrbanInHighMineralPlanning
+							   ||UrbanInHighNatureLandscape
+							   ||UrbanInHighGroundSurfaceWater
+							   ||UrbanInHighAgriculture
+							   ||UrbanInHighForestry > value(0, YesOrNo), Label = "Urban area (alloc) in all policy areas with high policy level";
+
+   					attribute <YesOrNo> UrbanAllInPolicyAreas    (domain_grid):
+						=UrbanInHighFloodProtectedAreas || UrbanInFloodProtectedAreas
+							   ||UrbanInHighGreenCorridors
+							   ||UrbanInGreenCorridors
+							   ||UrbanInHighMineralPlanning
+							   ||UrbanInMineralPlanning
+							   ||UrbanInHighNatureLandscape
+							   ||UrbanInNatureLandscape
+							   ||UrbanInHighGroundSurfaceWater
+							   ||UrbanInGroundSurfaceWater
+							   ||UrbanInHighAgriculture
+							   ||UrbanInAgriculture
+							   ||UrbanInHighForestry
+							   ||UrbanInForestry > value(0, YesOrNo), Label = "Urban area (alloc) in all policy areas with high policy level";
+
+
+				}
+				container Restriction_Areas: Descr = "Urban Development in restricted areas"
+				{
+					attribute <YesOrNo> UrbanInPowerPlantBuffer     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/restriction_maps/kraftwerke > value(0, Policy_Levels), Label = "Urban in the buffer area of a power station";
+					attribute <YesOrNo> UrbanInNoiseAirport_zone1     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/restriction_maps/fluglaerm > value(65, db), Label = "Urban within the >65db noise area of airports";
+					attribute <YesOrNo> UrbanInNoiseAirport_zone2     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/restriction_maps/fluglaerm > value(60, db), Label = "Urban within the >60db noise area of airports";
+//					attribute <YesOrNo> UrbanInBufferWEA     (domain_grid):
+//						=   results/landuse/AnderungenSeit2022/ZuUrban
+//							    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Urban within the buffer of wind power stations";
+					attribute <YesOrNo> UrbanInNoiseRailway_zone1     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/restriction_maps/bahnlaerm >= value(59, db), Label = "Urban within the >59db noise area of railroad tracks";
+					attribute <YesOrNo> UrbanInNoiseRailway_zone2     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/restriction_maps/bahnlaerm >= value(64, db), Label = "Urban within the >64db noise area of railroad tracks";
+					attribute <YesOrNo> UrbanInCemetery     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/restriction_maps/friedhoefe > value(0, Policy), Label = "Urbanwithin cemeteries";
+					attribute <YesOrNo> UrbanInElectricWires     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban
+							    && Present/restriction_maps/freileitungen > value(0, Policy), Label = "Urban within the buffer areas of electrical wires";
+					attribute <YesOrNo> LossUrbanInPowerPlantBuffer     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/restriction_maps/kraftwerke > value(0, Policy_Levels), Label = "Loss of Urban in the buffer area of a power station";
+					attribute <YesOrNo> LossUrbanInNoiseAirport_zone1     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/restriction_maps/fluglaerm > value(65, db), Label = "Loss of Urban within the >65db noise area of airports";
+					attribute <YesOrNo> LossUrbanInNoiseAirport_zone2     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/restriction_maps/fluglaerm > value(60, db), Label = "Loss of Urban within the >60db noise area of airports";
+//					attribute <YesOrNo> LossUrbanInBufferWEA     (domain_grid):
+//						=   results/landuse/AnderungenSeit2022/VonUrban
+//							    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Loss of Urban within the buffer of wind power stations";
+					attribute <YesOrNo> LossUrbanInNoiseRailway_zone1     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/restriction_maps/bahnlaerm >= value(59, db), Label = "Loss of Urban within the >59db noise area of railroad tracks";
+					attribute <YesOrNo> LossUrbanInNoiseRailway_zone2     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/restriction_maps/bahnlaerm >= value(64, db), Label = "Loss of Urban within the >64db noise area of railroad tracks";
+					attribute <YesOrNo> LossUrbanInElectricWires     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/VonUrban
+							    && Present/restriction_maps/freileitungen > value(0, Policy), Label = "Loss of Urban within the buffer areas of electrical wires";
+				}
+			}
+		
+		container UrbanDev_oUG: Descr = "Urban area_oUG (alloc) in policy-sensitive areas"
+			{
+				container Nature_protection: Descr = "Urban area_oUG (alloc) in nature protection policy areas"
+				{				
+					attribute <YesOrNo> Urban_oUGInNatureReserves     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Urban area_oUG (alloc) in Nature reserves";
+					attribute <YesOrNo> Urban_oUGInNationalParks     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Urban area_oUG (alloc) in National Parks";
+					attribute <YesOrNo> Urban_oUGInFFH     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Urban area_oUG (alloc) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> Urban_oUGInSPA     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Urban area_oUG (alloc) in Bird protection areas";
+					attribute <YesOrNo> Urban_oUGInRamsar     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Urban area_oUG (alloc) in Ramsar areas";
+					attribute <YesOrNo> Urban_oUGInBiosphereCore     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Urban area_oUG (alloc) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> Urban_oUGInBiosphereDev     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Urban area_oUG (alloc) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> Urban_oUGInLSG     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG 
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Urban area_oUG (alloc) in Landscape protection areas";
+
+					attribute <YesOrNo> UrbanAll_oUGInNatureProtectioAreas    (domain_grid):
+						=Urban_oUGInNatureReserves
+							   ||Urban_oUGInNationalParks
+							   ||Urban_oUGInFFH
+							   ||Urban_oUGInSpa
+							   ||Urban_oUGInRamsar
+							   ||Urban_oUGInBiosphereCore
+							   ||Urban_oUGInBiosphereDev > value(0, YesOrNo), Label = "Urban area_oUG (alloc) in all nature protection policy areas";
+					
+					attribute <YesOrNo> Urban_oUGAllInNatureProtectionAreasAll    (domain_grid):
+						=Urban_oUGInNatureReserves
+							   ||Urban_oUGInNationalParks
+							   ||Urban_oUGInFFH
+							   ||Urban_oUGInSpa
+							   ||Urban_oUGInRamsar
+							   ||Urban_oUGInLSG
+							   ||Urban_oUGInBiosphereCore
+							   ||Urban_oUGInBiosphereDev > value(0, YesOrNo), Label = "Current Urban area (_oUG) in all nature protection policy areas incl. LSG";
+							   
+					attribute <YesOrNo> Urban_oUGAllInNatureProtectionAreasHigh    (domain_grid):
+						=Urban_oUGInNatureReserves
+							   ||Urban_oUGInNationalParks
+							   ||Urban_oUGInFFH
+							   ||Urban_oUGInSpa
+							   ||Urban_oUGInBiosphereCore, Label = "Current urban area (_oUG) in all nature protection policy areas with high status";
+							   
+					attribute <YesOrNo> Urban_oUGAllInNatureProtectionAreasLow    (domain_grid):
+						=Urban_oUGInRamsar
+							   ||Urban_oUGInLSG
+							   ||Urban_oUGInBiosphereDev > value(0, YesOrNo), Label = "Current urban area (_oUG) in all nature protection policy areas with low status";
+				}
+				container NatureLandscape: Descr = "Urban area_oUG (alloc) in Nature and Landscape areas (non policy areas)"
+				{
+					attribute <YesOrNo> Urban_oUGInUnfragmentedSpace     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, Policy), Label = "Urban area_oUG (alloc) in Unfragmented Spaces";
+					attribute <YesOrNo> Urban_oUGInSoilQuality     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Urban area_oUG (alloc) in areas with high soil quality";
+					attribute <YesOrNo> Urban_oUGInSoilQuality0     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/SoilQuality == value(0, msqr), Label = "Urban area_oUG (alloc) in areas with high soil quality";
+					attribute <YesOrNo> Urban_oUGInFreeLand     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Urban area_oUG (alloc) in Free Land";
+					attribute <YesOrNo> Urban_oUGInHQ100     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Policy), Label = "Urban area_oUG (alloc) in flooded areas (JRC-Layer)";
+					attribute <YesOrNo> Urban_oUGInHQ_extr     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Policy), Label = "Urban area_oUG (alloc) in flooded areas (BaFG-Layer)";
+					attribute <YesOrNo> Urban_oUGInHQ_combined     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods_combined > value(0, Policy_Levels), Label = "Urban area_oUG (alloc) in flooded areas (combined Layers)";
+					attribute <YesOrNo> Urban_oUGInBothHQ_combined     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods_combined == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in flooded areas (combined Layers)";
+//					attribute <YesOrNo> Urban_oUGInHQ_L     (domain_grid):
+//						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+//							    && Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim > value(0, Uint2), Label = "Urban area_oUG (alloc) in flooded areas (HQ100 and HQ200)";
+//					attribute <YesOrNo> Urban_oUGInHQ_M     (domain_grid):
+//						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+//							    && Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(2, Uint2), Label = "Urban area_oUG (alloc) in flooded areas (HQ100)";
+//					attribute <YesOrNo> Urban_oUGInHQ_extr     (domain_grid):
+//						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+//							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Policy), Label = "Urban area_oUG (alloc) in flooded areas";
+					attribute <YesOrNo> Urban_oUGInLandslides     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+					attribute <YesOrNo> ActualUrban_oUGInHQ100     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Policy), Label = "Actual Urban area (_oUG) in flooded areas (JRC-Layer)";
+					attribute <YesOrNo> ActualUrban_oUGInHQ_extr     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Policy), Label = "Actual Urban area (_oUG) in flooded areas (BaFG-Layer)";
+					attribute <YesOrNo> ActualUrban_oUGInHQ_combined     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods_combined > value(0, Policy_Levels), Label = "Actual Urban area (_oUG) in flooded areas (combined Layers)";
+					attribute <YesOrNo> ActualUrban_oUGInBothHQ_combined     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Floods_combined == value(2, Policy_Levels), Label = "Actual Urban area (_oUG) in flooded areas (combined Layers)";
+//					attribute <YesOrNo> ActualUrban_oUGInHQ_L     (domain_grid):
+//						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+//							    && Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim > value(0, Uint2), Label = "Actual Urban area (_oUG) in flooded areas (HQ100 and HQ200)";
+//					attribute <YesOrNo> ActualUrban_oUGInHQ_M     (domain_grid):
+//						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+//							    && Present/thematic_maps/NatureLandscape/Floods_hwrmrl_sim == value(2, Uint2), Label = "Actual Urban area (_oUG) in flooded areas (HQ100)";
+//					attribute <YesOrNo> ActualUrban_oUGInHQ_extr     (domain_grid):
+//						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+//							    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Actual Urban area (_oUG) in flooded areas";
+					attribute <YesOrNo> ActualUrban_oUGInLandslides     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+				}
+				container Policy_Areas: Descr = "Urban area (alloc) in policy restricted areas"
+				{
+					attribute <YesOrNo> Urban_oUGInFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Urban area_oUG (alloc) in flood protection areas";
+					attribute <YesOrNo> Urban_oUGInHighFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in high flood protection areas";
+					attribute <YesOrNo> ActualUrban_oUGInFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Actual Urban area (_oUG) in flood protection areas";
+					attribute <YesOrNo> ActualUrban_oUGInHighFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenVorherigerZeitschritt/IsUrban_oUG
+							    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Actual Urban area (_oUG) in high flood protection areas";
+					attribute <YesOrNo> Urban_oUGInGreenCorridors     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Urban area_oUG (alloc) in green corridors";
+					attribute <YesOrNo> Urban_oUGInHighGreenCorridors     (domain_grid):
+								=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in in green corridors with high policy level";
+					attribute <YesOrNo> Urban_oUGInMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Urban area_oUG (alloc) in policy areas with high policy level for mineral extraction";
+					attribute <YesOrNo> Urban_oUGInHighMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in Planned areas for mineral extraction";
+					attribute <YesOrNo> Urban_oUGInNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Urban area_oUG (alloc) in Policy areas for Nature and Landscape";
+					attribute <YesOrNo> Urban_oUGInHighNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in Policy areas for Nature and Landscape with high policy level";
+					attribute <YesOrNo> Urban_oUGInGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Urban area_oUG (alloc) in Ground surface water protection areas";
+					attribute <YesOrNo> Urban_oUGInHighGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in Ground surface water protection areas with high policy level";
+					attribute <YesOrNo> Urban_oUGInOpenSpace     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/open_space > value(0, Policy), Label = "Urban area_oUG (alloc) in Open Space areas";
+					attribute <YesOrNo> Urban_oUGInAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Urban area_oUG (alloc) in Agriculture protection areas";
+					attribute <YesOrNo> Urban_oUGInHighAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in Agriculture protection areas with high policy level";
+					attribute <YesOrNo> Urban_oUGInForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Urban area_oUG (alloc) in Forestry protection areas";
+					attribute <YesOrNo> Urban_oUGInHighForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Urban area_oUG (alloc) in Forestry protection areas with high policy level";
+					attribute <YesOrNo> Urban_oUGInResidential     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/Residential > value(0, Policy), Label = "Urban area_oUG (alloc) in Residential areas";
+					attribute <YesOrNo> Urban_oUGInSettlement    (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/policy_maps/settlement > value(0, Policy), Label = "Urban area_oUG (alloc) in Settlement areas";
+					
+   					attribute <YesOrNo> UrbanAll_oUGInHighPolicyAreas    (domain_grid):
+						=Urban_oUGInHighFloodProtectedAreas
+							   ||Urban_oUGInHighGreenCorridors
+							   ||Urban_oUGInHighMineralPlanning
+							   ||Urban_oUGInHighNatureLandscape
+							   ||Urban_oUGInHighGroundSurfaceWater
+							   ||Urban_oUGInHighAgriculture
+							   ||Urban_oUGInHighForestry > value(0, YesOrNo), Label = "Urban area_oUG (alloc) in all policy areas with high policy level";
+
+   					attribute <YesOrNo> UrbanAll_oUGInPolicyAreas    (domain_grid):
+						=Urban_oUGInHighFloodProtectedAreas || Urban_oUGInFloodProtectedAreas
+							   ||Urban_oUGInHighGreenCorridors
+							   ||Urban_oUGInGreenCorridors
+							   ||Urban_oUGInHighMineralPlanning
+							   ||Urban_oUGInMineralPlanning
+							   ||Urban_oUGInHighNatureLandscape
+							   ||Urban_oUGInNatureLandscape
+							   ||Urban_oUGInHighGroundSurfaceWater
+							   ||Urban_oUGInGroundSurfaceWater
+							   ||Urban_oUGInHighAgriculture
+							   ||Urban_oUGInAgriculture
+							   ||Urban_oUGInHighForestry
+							   ||Urban_oUGInForestry > value(0, YesOrNo), Label = "Urban area_oUG (alloc) in all policy areas with high policy level";
+
+
+				}
+				container Restriction_Areas: Descr = "Urban_oUG Development in restricted areas"
+				{
+					attribute <YesOrNo> Urban_oUGInPowerPlantBuffer     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/restriction_maps/kraftwerke > value(0, Policy_Levels), Label = "Urban_oUG in the buffer area of a power station";
+					attribute <YesOrNo> Urban_oUGInNoiseAirport_zone1     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/restriction_maps/fluglaerm > value(65, db), Label = "Urban_oUG within the >65db noise area of airports";
+					attribute <YesOrNo> Urban_oUGInNoiseAirport_zone2     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/restriction_maps/fluglaerm > value(60, db), Label = "Urban_oUG within the >60db noise area of airports";
+//					attribute <YesOrNo> Urban_oUGInBufferWEA     (domain_grid):
+//						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+//							    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Urban_oUG within the buffer of wind power stations";
+					attribute <YesOrNo> Urban_oUGInNoiseRailway_zone1     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/restriction_maps/bahnlaerm >= value(59, db), Label = "Urban_oUG within the >59db noise area of railroad tracks";
+					attribute <YesOrNo> Urban_oUGInNoiseRailway_zone2     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/restriction_maps/bahnlaerm >= value(64, db), Label = "Urban_oUG within the >64db noise area of railroad tracks";
+					attribute <YesOrNo> Urban_oUGInCemetery     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/restriction_maps/friedhoefe > value(0, Policy), Label = "Urban_oUG within cemeteries";
+					attribute <YesOrNo> Urban_oUGInElectricWires     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuUrban_oUG
+							    && Present/restriction_maps/freileitungen > value(0, Policy), Label = "Urban_oUG within the buffer areas of electrical wires";
+				}
+			}	
+			
+//	container UrbanFabricDev_Areas: Descr = "Urban Fabric (alloc) in policy-sensitive areas"
+//		{
+//			container Nature_protection: Descr = "Urban Fabric (alloc) in nature protection policy areas"
+//			{				
+//				attribute <YesOrNo> UrbanFabricInNatureReserves     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Urban Fabric (alloc) in Nature reserves";
+//				attribute <YesOrNo> UrbanFabricInNationalParks     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/national_parks > value(0, Policy), Label = "Urban Fabric (alloc) in National Parks";
+//				attribute <YesOrNo> UrbanFabricInFFH     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/ffh > value(0, Policy), Label = "Urban Fabric (alloc) in Flora-Fauna-Habitat areas";
+//				attribute <YesOrNo> UrbanFabricInSPA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/spa > value(0, Policy), Label = "Urban Fabric (alloc) in Bird protection areas";
+//				attribute <YesOrNo> UrbanFabricInRamsar     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/ramsar > value(0, Policy), Label = "Urban Fabric (alloc) in Ramsar areas";
+//				attribute <YesOrNo> UrbanFabricInBiosphereCore     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Urban Fabric (alloc) in Core areas of Biosphere reserves";
+//				attribute <YesOrNo> UrbanFabricInBiosphereDev     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Urban Fabric (alloc) in Development areas of Biosphere reserves";
+//				attribute <YesOrNo> UrbanFabricInLSG     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/lsg > value(0, Policy), Label = "Urban Fabric (alloc) in Landscape protection areas";
+//
+//				attribute <YesOrNo> UrbanFabricAllInNatureProtectioAreas    (domain_grid):
+//					=UrbanFabricInNatureReserves
+//						   ||UrbanFabricInNationalParks
+//						   ||UrbanFabricInFFH
+//						   ||UrbanFabricInSpa
+//						   ||UrbanFabricInRamsar
+//						   ||UrbanFabricInBiosphereCore
+//						   ||UrbanFabricInBiosphereDev > value(0, YesOrNo), Label = "Urban Fabric (alloc) in all nature protection policy areas";
+//			}
+//			container NatureLandscape: Descr = "Urban Fabric (alloc) in Nature and Landscape areas (non policy areas)"
+//			{
+//				attribute <YesOrNo> UrbanFabricInUnfragmentedSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Urban Fabric (alloc) in Unfragmented Spaces";
+//				attribute <YesOrNo> UrbanFabricInSoilQuality     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Urban Fabric (alloc) in areas with high soil quality";
+//				attribute <YesOrNo> UrbanFabricInFreeLand     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Urban Fabric (alloc) in Free Land";
+//				attribute <YesOrNo> UrbanFabricInHQ100     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Urban Fabric (alloc) in flooded areas";
+//				attribute <YesOrNo> UrbanFabricInHQextr     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Urban Fabric (alloc) in flooded areas";
+//				attribute <YesOrNo> UrbanFabricInLandslides     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+//			}
+//			container Policy_Areas: Descr = "Urban Fabric (alloc) in policy restricted areas"
+//			{
+//				attribute <YesOrNo> UrbanFabricInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in flood protection areas";
+//				attribute <YesOrNo> UrbanFabricInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in high flood protection areas";
+//				attribute <YesOrNo> UrbanFabricInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in green corridors";
+//				attribute <YesOrNo> UrbanFabricInHighGreenCorridors     (domain_grid):
+//							=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> UrbanFabricInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in policy areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> UrbanFabricInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in Planned areas for mineral extraction";
+//				attribute <YesOrNo> UrbanFabricInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> UrbanFabricInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> UrbanFabricInGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in Ground surface water protection areas";
+//				attribute <YesOrNo> UrbanFabricInHighGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in Ground surface water protection areas with high policy level";
+//				attribute <YesOrNo> UrbanFabricInOpenSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/open_space > value(0, Policy), Label = "Urban Fabric (alloc) in Open Space areas";
+//				attribute <YesOrNo> UrbanFabricInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> UrbanFabricInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> UrbanFabricInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> UrbanFabricInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in Forestry protection areas with high policy level";
+//				attribute <YesOrNo> UrbanFabricInResidential     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/Residential > value(0, Policy), Label = "Urban Fabric (alloc) in Residential areas";
+//				attribute <YesOrNo> UrbanFabricInSettlement    (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/policy_maps/settlement > value(0, Policy), Label = "Urban Fabric (alloc) in Settlement areas";
+//				attribute <YesOrNo> LossUrbanFabricInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in flood protection areas";
+//				attribute <YesOrNo> LossUrbanFabricInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in high flood protection areas";
+//				attribute <YesOrNo> LossUrbanFabricInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in green corridors";
+//				attribute <YesOrNo> LossUrbanFabricInHighGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> LossUrbanFabricInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in policy areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> LossUrbanFabricInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in Planned areas for mineral extraction";
+//				attribute <YesOrNo> LossUrbanFabricInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> LossUrbanFabricInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> LossUrbanFabricInGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in Ground surface water protection areas";
+//				attribute <YesOrNo> LossUrbanFabricInHighGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in Ground surface water protection areas with high policy level";
+//				attribute <YesOrNo> LossUrbanFabricInOpenSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/open_space > value(0, Policy), Label = "Loss of Urban Fabric (alloc) in Open Space areas";
+//				attribute <YesOrNo> LossUrbanFabricInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Loss of Urban Fabric (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> LossUrbanFabricInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> LossUrbanFabricInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Urban Fabric (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> LossUrbanFabricInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Urban Fabric (alloc) in Forestry protection areas with high policy level";
+//						    
+//				attribute <YesOrNo> UrbanFabricAllInHighPolicyAreas    (domain_grid):
+//					=UrbanFabricInHighFloodProtectedAreas
+//						   ||UrbanFabricInHighGreenCorridors
+//						   ||UrbanFabricInHighMineralPlanning"
+//						   ||UrbanFabricInHighNatureLandscape"
+//						   ||UrbanFabricInHighGroundSurfaceWater"
+//						   ||UrbanFabricInHighAgriculture"
+//						   ||UrbanFabricInHighForestry > value(0, YesOrNo), Label = "Urban area (alloc) in all policy areas with high policy level";
+//
+//				attribute <YesOrNo> UrbanFabricAllInPolicyAreas    (domain_grid):
+//					=UrbanFabricInHighFloodProtectedAreas || UrbanFabricInFloodProtectedAreas"
+//						   ||UrbanFabricInHighGreenCorridors
+//						   ||UrbanFabricInGreenCorridors"
+//						   ||UrbanFabricInHighMineralPlanning"
+//						   ||UrbanFabricInMineralPlanning"
+//						   ||UrbanFabricInHighNatureLandscape"
+//						   ||UrbanFabricInNatureLandscape"
+//						   ||UrbanFabricInHighGroundSurfaceWater"
+//						   ||UrbanFabricInGroundSurfaceWater"
+//						   ||UrbanFabricInHighAgriculture"
+//						   ||UrbanFabricInAgriculture"
+//						   ||UrbanFabricInHighForestry"
+//						   ||UrbanFabricInForestry > value(0, YesOrNo), Label = "Urban Fabric (alloc) in all policy areas with high policy level";
+//
+//
+//			}
+//			container Restriction_Areas: Descr = "Current urban Fabric in restricted areas"
+//			{
+//				attribute <YesOrNo> UrbanFabricInPowerPlantBuffer     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/kraftwerke > value(0, Policy_Levels), Label = "Urban Fabric in the buffer area of a power station";
+//				attribute <YesOrNo> UrbanFabricInNoiseAirport_zone1     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/fluglaerm > value(1, Policy_Levels), Label = "Urban Fabric within the >65db noise area of airports";
+//				attribute <YesOrNo> UrbanFabricInNoiseAirport_zone2     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/fluglaerm > value(0, Policy_Levels), Label = "Urban Fabric within the >60db noise area of airports";
+//				attribute <YesOrNo> UrbanFabricInBufferWEA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Urban Fabric within the buffer of wind power stations";
+//				attribute <YesOrNo> UrbanFabricInNoiseRailway_zone1     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/bahnlaerm >= value(59, Float32), Label = "Urban Fabric within the >59db noise area of railroad tracks";
+//				attribute <YesOrNo> UrbanFabricInNoiseRailway_zone2     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/bahnlaerm >= value(64, Float32), Label = "Urban Fabric within the >64db noise area of railroad tracks";
+//				attribute <YesOrNo> UrbanFabricInCemetery     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/friedhoefe > value(0, Policy), Label = "Urban Fabric within cemeteries";
+//				attribute <YesOrNo> UrbanFabricInElectricWires     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuUrbanFabric "
+//						    && Present/restriction_maps/freileitungen > value(0, Policy), Label = "Urban Fabric within the buffer areas of electrical wires";
+//				attribute <YesOrNo> LossUrbanFabricInPowerPlantBuffer     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/restriction_maps/kraftwerke > value(0, Policy_Levels), Label = "Loss of Urban Fabric in the buffer area of a power station";
+//				attribute <YesOrNo> LossUrbanFabricInNoiseAirport_zone1     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/restriction_maps/fluglaerm > value(1, Policy_Levels), Label = "Loss of Urban Fabric within the >65db noise area of airports";
+//				attribute <YesOrNo> LossUrbanFabricInNoiseAirport_zone2     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/restriction_maps/fluglaerm > value(0, Policy_Levels), Label = "Loss of Urban Fabric within the >60db noise area of airports";
+//				attribute <YesOrNo> LossUrbanFabricInBufferWEA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Loss of Urban Fabric within the buffer of wind power stations";
+//				attribute <YesOrNo> LossUrbanFabricInNoiseRailway_zone1     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/restriction_maps/bahnlaerm >= value(59, Float32), Label = "Loss of Urban Fabric within the >59db noise area of railroad tracks";
+//				attribute <YesOrNo> LossUrbanFabricInNoiseRailway_zone2     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/restriction_maps/bahnlaerm >= value(64, Float32), Label = "Loss of Urban Fabric within the >64db noise area of railroad tracks";
+//				attribute <YesOrNo> LossUrbanFabricInElectricWires     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonUrbanFabric "
+//						    && Present/restriction_maps/freileitungen > value(0, Policy), Label = "Urban Fabric within the buffer areas of electrical wires";
+//			}
+//		}	
+//	
+//	container IndustryDev_Areas: Descr = "Industry (alloc) in policy-sensitive areas"
+//		{
+//			container Nature_protection: Descr = "Urban area (alloc) in nature protection policy areas"
+//			{				
+//				attribute <YesOrNo> IndustryInNatureReserves     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Industry (alloc) in Nature reserves";
+//				attribute <YesOrNo> IndustryInNationalParks     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/national_parks > value(0, Policy), Label = "Industry (alloc) in National Parks";
+//				attribute <YesOrNo> IndustryInFFH     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/ffh > value(0, Policy), Label = "Industry (alloc) in Flora-Fauna-Habitat areas";
+//				attribute <YesOrNo> IndustryInSPA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/spa > value(0, Policy), Label = "Industry (alloc) in Bird protection areas";
+//				attribute <YesOrNo> IndustryInRamsar     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/ramsar > value(0, Policy), Label = "Industry (alloc) in Ramsar areas";
+//				attribute <YesOrNo> IndustryInBiosphereCore     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Industry (alloc) in Core areas of Biosphere reserves";
+//				attribute <YesOrNo> IndustryInBiosphereDev     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Industry (alloc) in Development areas of Biosphere reserves";
+//				attribute <YesOrNo> IndustryInLSG     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/lsg > value(0, Policy), Label = "Industry (alloc) in Landscape protection areas";
+//
+//				attribute <YesOrNo> IndustryAllInNatureProtectionAreas    (domain_grid):
+//					=IndustryInNatureReserves
+//						   ||IndustryInNationalParks
+//						   ||IndustryInFFH
+//						   ||IndustryInSpa
+//						   ||IndustryInRamsar
+//						   ||IndustryInBiosphereCore
+//						   ||IndustryInBiosphereDev > value(0, YesOrNo), Label = "Industry (alloc) in all nature protection policy areas";
+//			}
+//			container NatureLandscape: Descr = "Industry (alloc) in Nature and Landscape areas (non policy areas)"
+//			{
+//				attribute <YesOrNo> IndustryInUnfragmentedSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Industry (alloc) in Unfragmented Spaces";
+//				attribute <YesOrNo> IndustryInSoilQuality     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Industry (alloc) in areas with high soil quality";
+//				attribute <YesOrNo> IndustryInFreeLand     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Industry (alloc) in Free Land";
+//				attribute <YesOrNo> IndustryInHQ100     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Industry (alloc) in flooded areas";
+//				attribute <YesOrNo> IndustryInHQextr     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Industry (alloc) in flooded areas";
+//				attribute <YesOrNo> IndustryInLandslides     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+//			}
+//			container Policy_Areas: Descr = "Industry (alloc) in policy restricted areas"
+//			{
+//				attribute <YesOrNo> IndustryInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Industry (alloc) in flood protection areas";
+//				attribute <YesOrNo> IndustryInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Industry (alloc) in high flood protection areas";
+//				attribute <YesOrNo> IndustryInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Industry (alloc) in green corridors";
+//				attribute <YesOrNo> IndustryInHighGreenCorridors     (domain_grid):
+//							=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Industry (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> IndustryInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Industry (alloc) in planned areas for mineral extraction";
+//				attribute <YesOrNo> IndustryInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Industry (alloc) in areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> IndustryInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Industry (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> IndustryInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Industry (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> IndustryInGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Industry (alloc) in Ground surface water protection areas";
+//				attribute <YesOrNo> IndustryInHighGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Industry (alloc) in Ground surface water protection areas with high policy level";
+//				attribute <YesOrNo> IndustryInOpenSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/open_space > value(0, Policy), Label = "Industry (alloc) in Open Space areas";
+//				attribute <YesOrNo> IndustryInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Industry (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> IndustryInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Industry (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> IndustryInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Industry (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> IndustryInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Industry (alloc) in Forestry protection areas with high policy level";
+//				attribute <YesOrNo> IndustryInIndustryCommercial     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/industry_commercial > value(0, Policy), Label = "Industry (alloc) in Industry & Commercial areas";
+//				attribute <YesOrNo> IndustryInRetail     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/retail > value(0, Policy), Label = "Industry (alloc) in Retail areas";
+//				attribute <YesOrNo> IndustryInSettlement    (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/policy_maps/settlement > value(0, Policy), Label = "Industry (alloc) in Settlement areas";
+//				attribute <YesOrNo> LossIndustryInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Loss of Industry (alloc) in flood protection areas";
+//				attribute <YesOrNo> LossIndustryInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Loss of Industry (alloc) in high flood protection areas";
+//				attribute <YesOrNo> LossIndustryInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Loss of Industry (alloc) in green corridors";
+//				attribute <YesOrNo> LossIndustryInHighGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Loss of Industry (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> LossIndustryInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Loss of Industry (alloc) in policy areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> LossIndustryInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Loss of Industry (alloc) in Planned areas for mineral extraction";
+//				attribute <YesOrNo> LossIndustryInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Loss of Industry (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> LossIndustryInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Loss of Industry (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> LossIndustryInGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Loss of Industry (alloc) in Ground surface water protection areas";
+//				attribute <YesOrNo> LossIndustryInHighGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Loss of Industry (alloc) in Ground surface water protection areas with high policy level";
+//				attribute <YesOrNo> LossIndustryInOpenSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/open_space > value(0, Policy), Label = "Loss of Industry (alloc) in Open Space areas";
+//				attribute <YesOrNo> LossIndustryInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Loss of Industry (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> LossIndustryInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Loss of Industry (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> LossIndustryInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Loss of Industry (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> LossIndustryInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Loss of Industry (alloc) in Forestry protection areas with high policy level";
+//						    
+//				attribute <YesOrNo> IndustryAllInHighPolicyAreas    (domain_grid):
+//					=IndustryInHighFloodProtectedAreas
+//						   ||IndustryInHighGreenCorridors
+//						   ||IndustryInHighMineralPlanning"
+//						   ||IndustryInHighNatureLandscape"
+//						   ||IndustryInHighGroundSurfaceWater"
+//						   ||IndustryInHighAgriculture"
+//						   ||IndustryInHighForestry > value(0, YesOrNo), Label = "Industry (alloc) in all policy areas with high policy level";
+//
+//				attribute <YesOrNo> IndustryAllInPolicyAreas    (domain_grid):
+//					=IndustryInHighFloodProtectedAreas || IndustryInFloodProtectedAreas"
+//						   ||IndustryInHighGreenCorridors
+//						   ||IndustryInGreenCorridors"
+//						   ||IndustryInHighMineralPlanning"
+//						   ||IndustryInMineralPlanning"
+//						   ||IndustryInHighNatureLandscape"
+//						   ||IndustryInNatureLandscape"
+//						   ||IndustryInHighGroundSurfaceWater"
+//						   ||IndustryInGroundSurfaceWater"
+//						   ||IndustryInHighAgriculture"
+//						   ||IndustryInAgriculture"
+//						   ||IndustryInHighForestry"
+//						   ||IndustryInForestry > value(0, YesOrNo), Label = "Industry (alloc) in all policy areas with high policy level";
+//
+//
+//			}
+//			container Restriction_Areas: Descr = "Current Industry in restricted areas"
+//			{
+//				attribute <YesOrNo> IndustryInCemetery     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/restriction_maps/friedhoefe > value(0, Policy), Label = "Industry within cemeteries";
+//				attribute <YesOrNo> IndustryInBufferWEA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuIndustry "
+//						    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Industry within the buffer of wind power stations";
+//				attribute <YesOrNo> LossIndustryInBufferWEA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonIndustry "
+//						    && Present/restriction_maps/buffer_wea > value(0, Policy_Levels), Label = "Loss of Industry within the buffer of wind power stations";
+//			}
+//		}
+//	
+//	container InfrastructureDev_Areas: Descr = "Infrastructure (alloc) in policy-sensitive areas"
+//		{
+//			container Nature_protection: Descr = "Urban area (alloc) in nature protection policy areas"
+//			{				
+//				attribute <YesOrNo> InfrastructureInNatureReserves     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Infrastructure (alloc) in Nature reserves";
+//				attribute <YesOrNo> InfrastructureInNationalParks     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/national_parks > value(0, Policy), Label = "Infrastructure (alloc) in National Parks";
+//				attribute <YesOrNo> InfrastructureInFFH     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/ffh > value(0, Policy), Label = "Infrastructure (alloc) in Flora-Fauna-Habitat areas";
+//				attribute <YesOrNo> InfrastructureInSPA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/spa > value(0, Policy), Label = "Infrastructure (alloc) in Bird protection areas";
+//				attribute <YesOrNo> InfrastructureInRamsar     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/ramsar > value(0, Policy), Label = "Infrastructure (alloc) in Ramsar areas";
+//				attribute <YesOrNo> InfrastructureInBiosphereCore     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Infrastructure (alloc) in Core areas of Biosphere reserves";
+//				attribute <YesOrNo> InfrastructureInBiosphereDev     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Infrastructure (alloc) in Development areas of Biosphere reserves";
+//				attribute <YesOrNo> InfrastructureInLSG     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/lsg > value(0, Policy), Label = "Infrastructure (alloc) in Landscape protection areas";
+//
+//				attribute <YesOrNo> InfrastructureAllInNatureProtectionAreas    (domain_grid):
+//					=InfrastructureInNatureReserves
+//						   ||InfrastructureInNationalParks
+//						   ||InfrastructureInFFH
+//						   ||InfrastructureInSpa
+//						   ||InfrastructureInRamsar
+//						   ||InfrastructureInBiosphereCore
+//						   ||InfrastructureInBiosphereDev > value(0, YesOrNo), Label = "Infrastructure (alloc) in all nature protection policy areas";
+//			}
+//			container NatureLandscape: Descr = "Infrastructure (alloc) in Nature and Landscape areas (non policy areas)"
+//			{
+//				attribute <YesOrNo> InfrastructureInUnfragmentedSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, YesOrNo), Label = "Infrastructure (alloc) in Unfragmented Spaces";
+//				attribute <YesOrNo> InfrastructureInSoilQuality     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Infrastructure (alloc) in areas with high soil quality";
+//				attribute <YesOrNo> InfrastructureInFreeLand     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Infrastructure (alloc) in Free Land";
+//				attribute <YesOrNo> InfrastructureInHQ100     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Infrastructure(alloc) in flooded areas";
+//				attribute <YesOrNo> InfrastructureInHQextr     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/thematic_maps/NatureLandscape/Floods_extr > value(0, Uint2), Label = "Infrastructure(alloc) in flooded areas";
+//				attribute <YesOrNo> InfrastructureInLandslides     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+//			}
+//			container Policy_Areas: Descr = "Infrastructure (alloc) in policy restricted areas"
+//			{
+//				attribute <YesOrNo> InfrastructureInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Infrastructure (alloc) in flood protection areas";
+//				attribute <YesOrNo> InfrastructureInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Infrastructure (alloc) in high flood protection areas";
+//				attribute <YesOrNo> InfrastructureInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Infrastructure (alloc) in green corridors";
+//				attribute <YesOrNo> InfrastructureInHighGreenCorridors     (domain_grid):
+//							=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Infrastructure (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> InfrastructureInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Infrastructure (alloc) in policy areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> InfrastructureInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Infrastructure (alloc) in Planned areas for mineral extraction";
+//				attribute <YesOrNo> InfrastructureInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Infrastructure (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> InfrastructureInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Infrastructure (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> InfrastructureInGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Infrastructure (alloc) in Ground surface water protection areas";
+//				attribute <YesOrNo> InfrastructureInHighGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Infrastructure (alloc) in Ground surface water protection areas with high policy level";
+//				attribute <YesOrNo> InfrastructureInOpenSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/open_space > value(0, Policy), Label = "Infrastructure (alloc) in Open Space areas";
+//				attribute <YesOrNo> InfrastructureInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Infrastructure (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> InfrastructureInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Infrastructure (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> InfrastructureInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Infrastructure (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> InfrastructureInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Infrastructure (alloc) in Forestry protection areas with high policy level";
+//				attribute <YesOrNo> LossInfrastructureInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Loss of Infrastructure (alloc) in flood protection areas";
+//				attribute <YesOrNo> LossInfrastructureInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Loss of Infrastructure (alloc) in high flood protection areas";
+//				attribute <YesOrNo> LossInfrastructureInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Loss of Infrastructure (alloc) in green corridors";
+//				attribute <YesOrNo> LossInfrastructureInHighGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Loss of Infrastructure (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> LossInfrastructureInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Loss of Infrastructure (alloc) in policy areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> LossInfrastructureInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Planned areas for mineral extraction";
+//				attribute <YesOrNo> LossInfrastructureInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> LossInfrastructureInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> LossInfrastructureInGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/ground_surface_water == value(1, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Ground surface water protection areas";
+//				attribute <YesOrNo> LossInfrastructureInHighGroundSurfaceWater     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/ground_surface_water == value(2, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Ground surface water protection areas with high policy level";
+//				attribute <YesOrNo> LossInfrastructureInOpenSpace     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/open_space > value(0, Policy), Label = "Loss of Infrastructure (alloc) in Open Space areas";
+//				attribute <YesOrNo> LossInfrastructureInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> LossInfrastructureInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> LossInfrastructureInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> LossInfrastructureInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonInfrastructure "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Loss of Infrastructure (alloc) in Forestry protection areas with high policy level";
+//						    
+//				attribute <YesOrNo> InfrastructureAllInHighPolicyAreas    (domain_grid):
+//					=InfrastructureInHighFloodProtectedAreas
+//						   ||InfrastructureInHighGreenCorridors
+//						   ||InfrastructureInHighMineralPlanning"
+//						   ||InfrastructureInHighNatureLandscape"
+//						   ||InfrastructureInHighGroundSurfaceWater"
+//						   ||InfrastructureInHighAgriculture"
+//						   ||InfrastructureInHighForestry > value(0, YesOrNo), Label = "Infrastructure (alloc) in all policy areas with high policy level";
+//
+//				attribute <YesOrNo> InfrastructureAllInPolicyAreas    (domain_grid):
+//					=InfrastructureInHighFloodProtectedAreas || InfrastructureInFloodProtectedAreas"
+//						   ||InfrastructureInHighGreenCorridors
+//						   ||InfrastructureInGreenCorridors"
+//						   ||InfrastructureInHighMineralPlanning"
+//						   ||InfrastructureInMineralPlanning"
+//						   ||InfrastructureInHighNatureLandscape"
+//						   ||InfrastructureInNatureLandscape"
+//						   ||InfrastructureInHighGroundSurfaceWater"
+//						   ||InfrastructureInGroundSurfaceWater"
+//						   ||InfrastructureInHighAgriculture"
+//						   ||InfrastructureInAgriculture"
+//						   ||InfrastructureInHighForestry"
+//						   ||InfrastructureInForestry > value(0, YesOrNo), Label = "Infrastructure (alloc) in all policy areas with high policy level";
+//
+//
+//			}
+//			container Preference_Areas: Descr = "Current Industry in restricted areas"
+//			{
+//				attribute <YesOrNo> InfrastructureInPrefInfrastructureConst     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuInfrastructure "
+//						    && Present/preference_maps/pref_infrastructure_construction > value(0, Policy), Label = "Infrastructure in preference construction zones";
+//			}
+//		}
+//	container GreenUrbanDev_Areas: Descr = "Green Urban areas (alloc) in policy-sensitive areas"
+//		{
+//			container Nature_protection: Descr = "Urban area (alloc) in nature protection policy areas"
+//			{				
+//				attribute <YesOrNo> GreenUrbanInNatureReserves     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Green Urban (alloc) in Nature reserves";
+//				attribute <YesOrNo> GreenUrbanInNationalParks     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/national_parks > value(0, Policy), Label = "Green Urban (alloc) in National Parks";
+//				attribute <YesOrNo> GreenUrbanInFFH     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/ffh > value(0, Policy), Label = "Green Urban (alloc) in Flora-Fauna-Habitat areas";
+//				attribute <YesOrNo> GreenUrbanInSPA     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/spa > value(0, Policy), Label = "Green Urban (alloc) in Bird protection areas";
+//				attribute <YesOrNo> GreenUrbanInRamsar     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/ramsar > value(0, Policy), Label = "Green Urban (alloc) in Ramsar areas";
+//				attribute <YesOrNo> GreenUrbanInBiosphereCore     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Green Urban (alloc) in Core areas of Biosphere reserves";
+//				attribute <YesOrNo> GreenUrbanInBiosphereDev     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Green Urban (alloc) in Development areas of Biosphere reserves";
+//				attribute <YesOrNo> GreenUrbanInLSG     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/lsg > value(0, Policy), Label = "GreenUrban (alloc) in Landscape protection areas";
+//
+//				attribute <YesOrNo> GreenUrbanAllInNatureProtectionAreas    (domain_grid):
+//					=GreenUrbanInNatureReserves
+//						   ||GreenUrbanInNationalParks
+//						   ||GreenUrbanInFFH
+//						   ||GreenUrbanInSpa
+//						   ||GreenUrbanInRamsar
+//						   ||GreenUrbanInBiosphereCore
+//						   ||GreenUrbanInBiosphereDev > value(0, YesOrNo), Label = "Green Urban (alloc) in all nature protection policy areas";
+//			}
+//			container NatureLandscape: Descr = "Green Urban (alloc) in Nature and Landscape areas (non policy areas)"
+//			{
+//				attribute <YesOrNo> GreenUrbanInSoilQuality     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Green Urban (alloc) in areas with high soil quality";
+//				attribute <YesOrNo> GreenUrbanInFreeLand     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Green Urban (alloc) in Free Land";
+//				attribute <YesOrNo> GreenUrbanInHQ100     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Green Urban(alloc) in flooded areas";
+//				attribute <YesOrNo> GreenUrbanInLandslides     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+//			}
+//			container Policy_Areas: Descr = "Green Urban (alloc) in policy restricted areas"
+//			{
+//				attribute <YesOrNo> GreenUrbanInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Green Urban (alloc) in flood protection areas";
+//				attribute <YesOrNo> GreenUrbanInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Green Urban (alloc) in high flood protection areas";
+//				attribute <YesOrNo> GreenUrbanInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Green Urban (alloc) in green corridors";
+//				attribute <YesOrNo> GreenUrbanInHighGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Green Urban (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> GreenUrbanInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Green Urban (alloc) in policy areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> GreenUrbanInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Green Urban (alloc) in Planned areas for mineral extraction";
+//				attribute <YesOrNo> GreenUrbanInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Green Urban (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> GreenUrbanInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Green Urban (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> GreenUrbanInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Green Urban (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> GreenUrbanInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Green Urban (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> GreenUrbanInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Green Urban (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> GreenUrbanInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Green Urban (alloc) in Forestry protection areas with high policy level";
+//				attribute <YesOrNo> GreenUrbanInSports     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/ZuGreenUrban "
+//						    && Present/policy_maps/sports > value(0, Policy_Levels), Label = "Green Urban (alloc) in Sports areas";
+//				attribute <YesOrNo> LossGreenUrbanInFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/flood_protection == value(1, Policy_Levels), Label = "Loss of Green Urban (alloc) in flood protection areas";
+//				attribute <YesOrNo> LossGreenUrbanInHighFloodProtectedAreas     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/flood_protection == value(2, Policy_Levels), Label = "Loss of Green Urban (alloc) in high flood protection areas";
+//				attribute <YesOrNo> LossGreenUrbanInGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/green_corridor == value(1, Policy_Levels), Label = "Loss of Green Urban (alloc) in green corridors";
+//				attribute <YesOrNo> LossGreenUrbanInHighGreenCorridors     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/green_corridor == value(2, Policy_Levels), Label = "Loss of Green Urban (alloc) in in green corridors with high policy level";
+//				attribute <YesOrNo> LossGreenUrbanInMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/mineral_planning == value(1, Policy_Levels), Label = "Loss of Green Urban (alloc) in policy areas with high policy level for mineral extraction";
+//				attribute <YesOrNo> LossGreenUrbanInHighMineralPlanning     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/mineral_planning == value(2, Policy_Levels), Label = "Loss of Green Urban (alloc) in Planned areas for mineral extraction";
+//				attribute <YesOrNo> LossGreenUrbanInNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/nature_landscape == value(1, Policy_Levels), Label = "Loss of Green Urban (alloc) in Policy areas for Nature and Landscape";
+//				attribute <YesOrNo> LossGreenUrbanInHighNatureLandscape     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/nature_landscape == value(2, Policy_Levels), Label = "Loss of GreenUrban (alloc) in Policy areas for Nature and Landscape with high policy level";
+//				attribute <YesOrNo> LossGreenUrbanInAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/agriculture == value(1, Policy_Levels), Label = "Loss of Green Urban (alloc) in Agriculture protection areas";
+//				attribute <YesOrNo> LossGreenUrbanInHighAgriculture     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/agriculture == value(2, Policy_Levels), Label = "Loss of Green Urban (alloc) in Agriculture protection areas with high policy level";
+//				attribute <YesOrNo> LossGreenUrbanInForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/forestry == value(1, Policy_Levels), Label = "Loss of Green Urban (alloc) in Forestry protection areas";
+//				attribute <YesOrNo> LossGreenUrbanInHighForestry     (domain_grid):
+//					=   results/landuse/AnderungenSeit2022/VonGreenUrban "
+//						    && Present/policy_maps/forestry == value(2, Policy_Levels), Label = "Loss of GreenUrban (alloc) in Forestry protection areas with high policy level";
+//						    
+//				attribute <YesOrNo> GreenUrbanAllInHighPolicyAreas    (domain_grid):
+//					=GreenUrbanInHighFloodProtectedAreas
+//						   ||GreenUrbanInHighGreenCorridors
+//						   ||GreenUrbanInHighMineralPlanning"
+//						   ||GreenUrbanInHighNatureLandscape"
+//						   ||GreenUrbanInHighAgriculture"
+//						   ||GreenUrbanInHighForestry > value(0, YesOrNo), Label = "Green Urban (alloc) in all policy areas with high policy level";
+//
+//				attribute <YesOrNo> GreenUrbanAllInPolicyAreas    (domain_grid):
+//					=GreenUrbanInHighFloodProtectedAreas || GreenUrbanInFloodProtectedAreas"
+//						   ||GreenUrbanInHighGreenCorridors
+//						   ||GreenUrbanInGreenCorridors"
+//						   ||GreenUrbanInHighMineralPlanning"
+//						   ||GreenUrbanInMineralPlanning"
+//						   ||GreenUrbanInHighNatureLandscape"
+//						   ||GreenUrbanInNatureLandscape"
+//						   ||GreenUrbanInHighAgriculture"
+//						   ||GreenUrbanInAgriculture"
+//						   ||GreenUrbanInHighForestry"
+//						   ||GreenUrbanInForestry > value(0, YesOrNo), Label = "Green Urban (alloc) in all policy areas with high policy level";
+//
+//
+//			}
+//			
+//		}		
+		container DevArable_Areas: Descr = "Land use types (alloc) in policy-sensitive areas"
+			{
+				container Nature_protection: Descr = "Other land use types (alloc) in nature protection policy areas"
+				{
+					attribute <YesOrNo> ArableInNatureReserves     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Arable area (alloc) in Nature reserves";
+					attribute <YesOrNo> ArableInNationalParks     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Arable area (alloc) in National Parks";
+					attribute <YesOrNo> ArableInFFH     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Arable area (alloc) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> ArableInSPA     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Arable area (alloc) in Bird protection areas";
+					attribute <YesOrNo> ArableInRamsar     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Arable area (alloc) in Ramsar areas";
+					attribute <YesOrNo> ArableInBiosphereCore     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Arable area (alloc) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> ArableInBiosphereDev     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Arable area (alloc) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> ArableInLSG     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Arable area (alloc) in Landscape protection areas";
+
+					attribute <YesOrNo> ArableAllInNatureProtectioAreas    (domain_grid):
+						=ArableInNatureReserves
+							   ||ArableInNationalParks
+							   ||ArableInFFH
+							   ||ArableInSpa
+							   ||ArableInRamsar
+							   ||ArableInBiosphereCore
+							   ||ArableInBiosphereDev > value(0, YesOrNo), Label = "Arable area (alloc) in all nature protection policy areas";
+				}
+				container NatureLandscape: Descr = "Arable area (alloc) in Nature and Landscape areas (non policy areas)"
+				{
+					attribute <YesOrNo> ArableInUnfragmentedSpace     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, Policy), Label = "Arable area (alloc) in Unfragmented Spaces";
+					attribute <YesOrNo> ArableInSoilQuality     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Arable area (alloc) in areas with high soil quality";
+					attribute <YesOrNo> ArableInFreeLand     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Arable area (alloc) in Free Land";
+					attribute <YesOrNo> ArableInHQ100     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Arable area (alloc) in flooded areas";
+					attribute <YesOrNo> CurrArableInHQ100     (domain_grid):
+						=   present/landuse/IsArable
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Arable area (alloc) in flooded areas";
+					attribute <YesOrNo> CurrArableInLandslides     (domain_grid):
+						=   results/landuse/IsArable
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+					attribute <YesOrNo> ArableInLandslides     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+				}
+				container Policy_Areas: Descr = "Arable area (alloc) in policy restricted areas"
+				{
+					attribute <YesOrNo> ArableInFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Arable area (alloc) in flood protection areas";
+					attribute <YesOrNo> ArableInHighFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/flood_protection > value(1, Policy_Levels), Label = "Arable area (alloc) in high flood protection areas";
+					attribute <YesOrNo> ArableInGreenCorridors     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/green_corridor > value(0, Policy_Levels), Label = "Arable area (alloc) in green corridors";
+					attribute <YesOrNo> ArableInHighGreenCorridors     (domain_grid):
+								=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/green_corridor > value(1, Policy_Levels), Label = "Arable area (alloc) in in green corridors with high policy level";
+					attribute <YesOrNo> ArableInMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/mineral_planning > value(0, Policy), Label = "Arable area (alloc) in policy areas with high policy level for mineral extraction";
+					attribute <YesOrNo> ArableInHighMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/mineral_planning > value(1, Policy), Label = "Arable area (alloc) in Planned areas for mineral extraction";
+					attribute <YesOrNo> ArableInNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/nature_landscape > value(0, Policy), Label = "Arable area (alloc) in Policy areas for Nature and Landscape";
+					attribute <YesOrNo> ArableInHighNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/nature_landscape > value(1, Policy), Label = "Arable area (alloc) in Policy areas for Nature and Landscape with high policy level";
+					attribute <YesOrNo> ArableInGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/ground_surface_water > value(0, Policy), Label = "Arable area (alloc) in Ground surface water protection areas";
+					attribute <YesOrNo> ArableInHighGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/ground_surface_water > value(1, Policy), Label = "Arable area (alloc) in Ground surface water protection areas with high policy level";
+					attribute <YesOrNo> ArableInAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/agriculture > value(0, Policy), Label = "Arable area (alloc) in Agriculture protection areas";
+					attribute <YesOrNo> ArableInHighAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/agriculture > value(1, Policy), Label = "Arable area (alloc) in Agriculture protection areas with high policy level";
+					attribute <YesOrNo> ArableInForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/forestry > value(0, Policy), Label = "Arable area (alloc) in Forestry protection areas";
+					attribute <YesOrNo> ArableInHighForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuArable
+							    && Present/policy_maps/forestry > value(1, Policy), Label = "Arable area (alloc) in Forestry protection areas with high policy level";
+
+   					attribute <YesOrNo> ArableAllInHighPolicyAreas    (domain_grid):
+						=ArableInHighFloodProtectedAreas
+							   ||ArableInHighGreenCorridors
+							   ||ArableInHighMineralPlanning
+							   ||ArableInHighNatureLandscape
+							   ||ArableInHighGroundSurfaceWater
+							   ||ArableInHighAgriculture
+							   ||ArableInHighForestry > value(0, YesOrNo), Label = "Arable area (alloc) in all policy areas with high policy level";
+
+   					attribute <YesOrNo> ArableAllInPolicyAreas    (domain_grid):
+						=ArableInHighFloodProtectedAreas || ArableInFloodProtectedAreas
+							   ||ArableInHighGreenCorridors
+							   ||ArableInGreenCorridors
+							   ||ArableInHighMineralPlanning
+							   ||ArableInMineralPlanning
+							   ||ArableInHighNatureLandscape
+							   ||ArableInNatureLandscape
+							   ||ArableInHighGroundSurfaceWater
+							   ||ArableInGroundSurfaceWater
+							   ||ArableInHighAgriculture
+							   ||ArableInAgriculture
+							   ||ArableInHighForestry
+							   ||ArableInForestry > value(0, YesOrNo), Label = "Arable area (alloc) in all policy areas with high policy level";
+				}
+			}
+
+		container DevPasture_Areas: Descr = "Land use types (alloc) in policy-sensitive areas"
+			{
+				container Nature_protection: Descr = "Other land use types (alloc) in nature protection policy areas"
+				{					
+					attribute <YesOrNo> PastureInNatureReserves     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/nature_reserves > value(0, Policy), Label = "Pasture area (alloc) in Nature reserves";
+					attribute <YesOrNo> PastureInNationalParks     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/national_parks > value(0, Policy), Label = "Pasture area (alloc) in National Parks";
+					attribute <YesOrNo> PastureInFFH     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/ffh > value(0, Policy), Label = "Pasture area (alloc) in Flora-Fauna-Habitat areas";
+					attribute <YesOrNo> PastureInSPA     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/spa > value(0, Policy), Label = "Pasture area (alloc) in Bird protection areas";
+					attribute <YesOrNo> PastureInRamsar     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/ramsar > value(0, Policy), Label = "Pasture area (alloc) in Ramsar areas";
+					attribute <YesOrNo> PastureInBiosphereCore     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/biosphere_reserves_core > value(0, Policy), Label = "Pasture area (alloc) in Core areas of Biosphere reserves";
+					attribute <YesOrNo> PastureInBiosphereDev     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/biosphere_reserves_development > value(0, Policy), Label = "Pasture area (alloc) in Development areas of Biosphere reserves";
+					attribute <YesOrNo> PastureInLSG     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/lsg > value(0, Policy), Label = "Pasture area (alloc) in Landscape protection areas";
+
+					attribute <YesOrNo> PastureAllInNatureProtectioAreas    (domain_grid):
+						=PastureInNatureReserves
+							   ||PastureInNationalParks
+							   ||PastureInFFH
+							   ||PastureInSpa
+							   ||PastureInRamsar
+							   ||PastureInBiosphereCore
+							   ||PastureInBiosphereDev > value(0, YesOrNo), Label = "Pasture area (alloc) in all nature protection policy areas";
+				}
+				container NatureLandscape: Descr = "Pasture area (alloc) in Nature and Landscape areas (non policy areas)"
+				{
+					attribute <YesOrNo> PastureInUnfragmentedSpace     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/thematic_maps/NatureLandscape/UnfragmentedSpace > value(0, Policy), Label = "Pasture area (alloc) in Unfragmented Spaces";
+					attribute <YesOrNo> PastureInSoilQuality     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/thematic_maps/NatureLandscape/SoilQuality >= value(60, msqr), Label = "Pasture area (alloc) in areas with high soil quality";
+					attribute <YesOrNo> PastureInFreeLand     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/landuse/IsFreeLand > value(0, YesOrNo), Label = "Pasture area (alloc) in Free Land";
+					attribute <YesOrNo> PastureInHQ100     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/thematic_maps/NatureLandscape/Floods100y > value(0, Uint2), Label = "Pasture area (alloc) in flooded areas";
+					attribute <YesOrNo> CurrPastureInLandslides     (domain_grid):
+						=   results/landuse/IsPasture
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+					attribute <YesOrNo> PatureInLandslides     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/thematic_maps/NatureLandscape/Landslides > value(3, Landslide), Label = "Urban area in landslide areas (High and Very high)";
+				}
+				container Policy_Areas: Descr = "Pasture area (alloc) in policy restricted areas"
+				{
+					attribute <YesOrNo> PastureInFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/flood_protection > value(0, Policy_Levels), Label = "Pasture area (alloc) in flood protection areas";
+					attribute <YesOrNo> PastureInHighFloodProtectedAreas     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/flood_protection > value(1, Policy_Levels), Label = "Pasture area (alloc) in high flood protection areas";
+					attribute <YesOrNo> PastureInGreenCorridors     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/green_corridor > value(0, Policy_Levels), Label = "Pasture area (alloc) in green corridors";
+					attribute <YesOrNo> PastureInHighGreenCorridors     (domain_grid):
+								=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/green_corridor > value(1, Policy_Levels), Label = "Pasture area (alloc) in in green corridors with high policy level";
+					attribute <YesOrNo> PastureInMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/mineral_planning > value(0, Policy), Label = "Pasture area (alloc) in policy areas with high policy level for mineral extraction";
+					attribute <YesOrNo> PastureInHighMineralPlanning     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/mineral_planning > value(1, Policy), Label = "Pasture area (alloc) in Planned areas for mineral extraction";
+					attribute <YesOrNo> PastureInNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/nature_landscape > value(0, Policy), Label = "Pasture area (alloc) in Policy areas for Nature and Landscape";
+					attribute <YesOrNo> PastureInHighNatureLandscape     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/nature_landscape > value(1, Policy), Label = "Pasture area (alloc) in Policy areas for Nature and Landscape with high policy level";
+					attribute <YesOrNo> PastureInGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/ground_surface_water > value(0, Policy), Label = "Pasture area (alloc) in Ground surface water protection areas";
+					attribute <YesOrNo> PastureInHighGroundSurfaceWater     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/ground_surface_water > value(1, Policy), Label = "Pasture area (alloc) in Ground surface water protection areas with high policy level";
+					attribute <YesOrNo> PastureInAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/agriculture > value(0, Policy), Label = "Pasture area (alloc) in Agriculture protection areas";
+					attribute <YesOrNo> PastureInHighAgriculture     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/agriculture > value(1, Policy), Label = "Pasture area (alloc) in Agriculture protection areas with high policy level";
+					attribute <YesOrNo> PastureInForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/forestry > value(0, Policy), Label = "Pasture area (alloc) in Forestry protection areas";
+					attribute <YesOrNo> PastureInHighForestry     (domain_grid):
+						=   results/landuse/AnderungenSeit2022/ZuPasture
+							    && Present/policy_maps/forestry > value(1, Policy), Label = "Pasture area (alloc) in Forestry protection areas with high policy level";
+
+   					attribute <YesOrNo> PastureAllInHighPolicyAreas    (domain_grid):
+						=PastureInHighFloodProtectedAreas
+							   ||PastureInHighGreenCorridors
+							   ||PastureInHighMineralPlanning
+							   ||PastureInHighNatureLandscape
+							   ||PastureInHighGroundSurfaceWater
+							   ||PastureInHighAgriculture
+							   ||PastureInHighForestry > value(0, YesOrNo), Label = "Pasture area (alloc) in all policy areas with high policy level";
+
+   					attribute <YesOrNo> PastureAllInPolicyAreas    (domain_grid):
+						=PastureInHighFloodProtectedAreas || PastureInFloodProtectedAreas
+							   ||PastureInHighGreenCorridors
+							   ||PastureInGreenCorridors
+							   ||PastureInHighMineralPlanning
+							   ||PastureInMineralPlanning
+							   ||PastureInHighNatureLandscape
+							   ||PastureInNatureLandscape
+							   ||PastureInHighGroundSurfaceWater
+							   ||PastureInGroundSurfaceWater
+							   ||PastureInHighAgriculture
+							   ||PastureInAgriculture
+							   ||PastureInHighForestry
+							   ||PastureInForestry > value(0, YesOrNo), Label = "Pasture area (alloc) in all policy areas with high policy level";
+
+
+				}
+			}
+	}	
+	container Urban_Sprawl: Descr = "A set of indicators providing inside in the extent of urbanisation (spatial configuration indicators)"		
+		{
+			container Current: Descr = "urban sprawl indicators for 2009"
+			{
+				unit<uint32> UrbanAreas
+				:	     = "district(uint8(present/landuse/IsUrban))"
+				,	IsHidden = "True"
+				{
+					attribute<UrbanAreas> Districts (domain_grid);
+					attribute<UrbanAreas> ID_Districts (domain_grid) := "Districts *uint32(present/landuse/IsUrban)";
+					attribute<luHa>       Size      (UrbanAreas) := "Float32(pcount(Districts)) * value(1, luHa)";
+					attribute<luHa> DistrictSize(domain_grid) := "Size[Districts] * Float32(present/landuse/IsUrban)";
+					attribute<luHa> DistrictSizeGrTh1ha(domain_grid): 
+									 =  "(DistrictSize * float32(DistrictSize < 100000[luHa]))"
+											"- (DistrictSize * float32(DistrictSize == 1[luHa]))";
+					attribute<luHa> NrUrbanAreasEq1ha(domain_grid) :=  "DistrictSize * float32(DistrictSize == 1[luHa])";
+				}
+				parameter <luHa> AvgSizeUrbanAreas
+				:	     = "sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))/sum(float32(UrbanAreas/Size <= 100000[luHa]))";
+				
+				parameter <luHa> AvgSizeUrbanAreas1ha
+				:	     = "(sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))-sum(UrbanAreas/Size* float32(UrbanAreas/Size == 1[luHa])))/(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])))";
+
+				parameter <float32> NoOfUrbanAreas1ha
+				:	     = "sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa]))";
+								
+// Erläuterung zur AvgSizeUrbanAreas:
+//	Vor dem Bruchstrich:	Die Größe der Patches (basierend auf der Tabelle Size) wird summiert, zunächst würde das für alle Patches gelten, also auch die 25 die nicht urban sind. Es sollen aber nur die Patches berücksichtigt werden, die kleiner als 100tsd ha sind, da das die Patches sind, die urban sind (alle größeren gehören nicht zu urban und sind die Restfläche der 25 Tiles).
+//							Die Auswahl der eigentlichen Patches basiert auf einer Abfrage, aus der eine ja/nein Antwort hervorgeht, die durch Umwandlung in Float32 in 1/0 umgewandelt wird. Durch Multiplikation mit der Patchgröße erhält man die Gesamtfläche der urbanen Patches.
+//	Nach dem Bruchstrich:	Ergibt die Anzahl der Patches: Wieder Abfrage nach Patches, die kleiner als 100tsd ha sind und Umwandlung der ja/nein Ergebnisse in 0/1. Diese für Konsistenz in Float32 umwandeln und die einsen aufsummieren. (Bei Verwendung von count kommt nichts sinnvolles raus).			
+
+				attribute <luHa> AvgSizeUrbanAreasRegions1 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
+				:	     = "sum(UrbanAreas/DistrictSizeGrTh1ha, Geography/RegionGrids/Kreise)"
+							   "/ sum(float32(Bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)";
+
+				attribute <luHa> AvgSizeUrbanAreasRegions2 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
+				:		 = "(sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
+			    			   "- sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))"
+							   "/ (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
+							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))";
+
+//Zwei Rechenwege, die zu unterschiedlichen Ergebnissen führen:	 Könnte der Grund darin liegen, wann das partitioning gemacht wird? Dadurch könnten in
+//																 Regionen Patches mit einem ha Größe entstehen, die dann eleminiert werden, wenn die
+//																 Größenabfrage auf den regionalisierten Daten läuft, nicht aber, wenn das Gesamtdeutsche^
+//																 Grid verwendet wird.
+//																 Für die Durchschnittliche Patchgröße ist Variante 2 sinnvoller
+//																 In der Berechnung für die Anzahl der Patches kommt bei beiden Wegen nichts sinnvolles raua.
+
+				attribute <float32> NrOfUrbanAreasPerRegion1 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
+				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions1";
+
+				attribute <float32> NrOfUrbanAreasPerRegion2 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
+				,	     = "(sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
+							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))/AvgSizeUrbanAreasRegions2";
+
+				attribute <float32> NrOfUrbanAreasPerRegion3 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
+				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions2";
+			}
+				
+			container Allocated: Descr = "urban sprawl indicators for allocation year"
+			{
+				unit<uint32> UrbanAreas
+				:	     = "district(uint8(results/landuse/AnderungenVorherigerZeitschritt/IsUrban))"
+				,	IsHidden = "True"
+				{
+					attribute<UrbanAreas> Districts (domain_grid);
+					attribute<UrbanAreas> ID_Districts (domain_grid) := "Districts *uint32(results/landuse/AnderungenVorherigerZeitschritt/IsUrban)";
+					attribute<luHa>       Size      (UrbanAreas) := "Float32(pcount(Districts)) * value(1, luHa)";
+					attribute<luHa> DistrictSize(domain_grid) := "Size[Districts] * Float32(results/landuse/AnderungenVorherigerZeitschritt/IsUrban)"; //Multiplikation notwendig, damit die Rasterkarte nicht in die 25 Tiles aufgeteilt bleibt und somit nicht jedes Tile ein District ohne Urban hat
+					attribute<luHa> DistrictSizeGrTh1ha(domain_grid):
+									 =  "(DistrictSize * float32(DistrictSize < 100000[luHa]))"
+											"- (DistrictSize * float32(DistrictSize == 1[luHa]))";
+					attribute<luHa> NrUrbanAreasEq1ha(domain_grid) :=  "DistrictSize * float32(DistrictSize == 1[luHa])";
+					
+//					attribute<YesorNo>    IsBuiltup (UrbanAreas) := "modus(results/landuse/AnderungenVorherigerZeitschritt/IsUrban, Districts)"; //verstehe den Zweck nicht, stamt aus LUS-Demo mit Contiuous Algorthismus
+				}
+				parameter <luHa> AvgSizeUrbanAreas
+				:	     = "sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))/sum(float32(UrbanAreas/Size <= 100000[luHa]))";
+				
+				parameter <luHa> AvgSizeUrbanAreas1ha
+				:	     = "(sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))-sum(UrbanAreas/Size* float32(UrbanAreas/Size == 1[luHa])))/(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])))";
+
+				parameter <float32> NoOfUrbanAreas1ha
+				:	     = "(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])))";
+
+				attribute <luHa> AvgSizeUrbanAreasRegions1 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
+				:	     = "sum(UrbanAreas/DistrictSizeGrTh1ha, Geography/RegionGrids/Kreise)"
+							   "/ sum(float32(Bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)";
+
+				attribute <luHa> AvgSizeUrbanAreasRegions2 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
+				:		 = "(sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
+			    			   "- sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))"
+							   "/ (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
+							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))";
+
+				attribute <float32> NrOfUrbanAreasPerRegion1 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
+				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions1";
+
+				attribute <float32> NrOfUrbanAreasPerRegion2 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
+				,	     = "(sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
+							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))/AvgSizeUrbanAreasRegions2";
+
+				attribute <float32> NrOfUrbanAreasPerRegion3 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
+				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions2";
+				// Erläuterung zu NrOfUrbanAreasPerRegion: Das ist nur eine Annäherung, indem ich die Anzahl Zellen die Urban in einer Region sind gezählt habe und diese durch die Durchschnittliche Patchgröße der Region geteilt habe
+			}
+				
+			container Change: Descr = "change of urban sprawl indicators since 2009"
+			{
+				parameter <float32> ChangeAvgPatchSize
+				:			 =	"((Allocated/AvgSizeUrbanAreas1ha / Current/AvgSizeUrbanAreas1ha)- value(1, float32))* value(100, float32)";
+				
+				parameter <float32> ChangeNrOfUrbanAreas
+				:			 =	"((Allocated/NoOfUrbanAreas1ha / Current/NoOfUrbanAreas1ha)- value(1, float32))* value(100, float32)";
+
+				attribute <float32> ChangeAvgPatchSizePerRegion1 (Geography/RegionDomains/Kreise)
+				:			 =	"((Allocated/AvgSizeUrbanAreasRegions1 / Current/AvgSizeUrbanAreasRegions1)- value(1, float32))* value(100, float32)";
+
+				attribute <float32> ChangeAvgPatchSizePerRegion2 (Geography/RegionDomains/Kreise)
+				:			 =	"((Allocated/AvgSizeUrbanAreasRegions2 / Current/AvgSizeUrbanAreasRegions2)- value(1, float32))* value(100, float32)";
+				
+				attribute <float32> ChangeNrOfUrbanAreasPerRegion1 (Geography/RegionDomains/Kreise)
+				:			 =	"((Allocated/NrOfUrbanAreasPerRegion1 / Current/NrOfUrbanAreasPerRegion1)- value(1, float32))* value(100, float32)";
+				
+				attribute <float32> ChangeNrOfUrbanAreasPerRegion2 (Geography/RegionDomains/Kreise)
+				:			 =	"((Allocated/NrOfUrbanAreasPerRegion2 / Current/NrOfUrbanAreasPerRegion2)- value(1, float32))* value(100, float32)";
+				
+				attribute <float32> ChangeNrOfUrbanAreasPerRegion3 (Geography/RegionDomains/Kreise)
+				:			 =	"((Allocated/NrOfUrbanAreasPerRegion3 / Current/NrOfUrbanAreasPerRegion3)- value(1, float32))* value(100, float32)";
+			}		
+			
+			
+		}
+	
+	#include <Ind_LandConsumption.dms>
+	#include <Ind_SoilProtection.dms>
+	#include <Ind_FloodRisk.dms>
+	//#include <Ind_FloodRisk_new.dms>
+	//#include <Ind_FloodRisk_single.dms>
+	#include <Ind_UrbanHeat.dms>
+	#include <Ind_NatureProtection.dms>
+	#include <Ind_GreenUrban.dms>
+	#include <Ind_PublicTransport.dms>
+	#include <Ind_LocationIntegration.dms>
+	#include <Ind_CarbonSequestration.dms>
+	#include <Ind_CarbonSequestrationEF.dms>
+	
+	
+	unit<WPoint> xTabData := Range(WPoint, Point(UInt16(0),UInt16(0)), Point(UInt16(#Classifications/LU/ModelType), UInt16(#Classifications/LU/ModelType)))
+	{
+		attribute<UInt32> Count := PCount(Point(UInt16(Prev_landuse), UInt16(results/LandUse/Model), xTabData));
+		attribute<UInt32> CountSeit2022 := PCount(Point(UInt16(Present/landuse/germany), UInt16(results/LandUse/Model), xTabData));
+	}
+	container xTab :=  
+		for_each_nedv(
+			Classifications/LU/ModelType/Name, 
+			'xTabData/Count[
+				Point(
+					UInt16(ID(Classifications/LU/ModelType)), 
+					const('+String(ID(Classifications/LU/ModelType))+', Classifications/LU/ModelType, UInt16), 
+					xTabData
+				)
+			]', 
+			Classifications/LU/ModelType, UInt32
+		);
+
+	container xTabSeit2022 :=  
+		for_each_nedv(
+			Classifications/LU/ModelType/Name, 
+			'xTabData/CountSeit2022[
+				Point(
+					UInt16(ID(Classifications/LU/ModelType)), 
+					const('+String(ID(Classifications/LU/ModelType))+', Classifications/LU/ModelType, UInt16), 
+					xTabData
+				)
+			]', 
+			Classifications/LU/ModelType, UInt32
+		);
+}

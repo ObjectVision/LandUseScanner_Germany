@@ -1,0 +1,176 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+//                               Project CC-LandStraD                                                         //
+//                                                                                                            //
+//                               VUA & BBSR                                                                   //
+//                               March 2013                                                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                            //
+// This DMS-file is being referred to by RS_ContinuAlloc.dms                                                  //
+//                                                                                                            //
+// This configuration file contains multiple indicators for evaluation of simulation results                  //
+//                                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+container Ind_CarbonSequestrationEF: Descr = "A set of indicators allowing the evaluation of policies by describing their impact on carbon sequestration."		
+{
+	container Preparation: Descr = "Preparation for calculation"
+	{
+		attribute<float32> CarbonSequestration2009 (domain_grid): IsHidden = "True",
+		   				Expr  = "switch("
+		   							"	case(present/landuse/germany <= value( 6, uint8), value(0, float32))"
+		   							",	case(present/landuse/germany == value( 7, uint8), float32(1.0 / 3.0 * 0.0) + float32(1.0 / 3.0 * 13.6) + float32(1.0 / 3.0 * ((-0.007 * 50.0) + 1.35) * 134.0))"
+		   							",	case(present/landuse/germany == value( 8, uint8), value(-28.3, float32) * switch("
+		   									"	case(present/thematic_maps/naturelandscape/carboncontent == value(1, uint8), value(0.0,float32))"
+		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(2, uint8), value(0.2,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(3, uint8), value(0.3,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(4, uint8), value(0.5,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(5, uint8), value(0.7,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(6, uint8), value(0.9,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(7, uint8), value(1.4,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(8, uint8), value(1.7,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(9, uint8), value(2.1,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(10, uint8), value(3.2,float32))"
+ 		   									",	value(0,float32)"
+ 		   								"))"
+ 		   							",	case(present/landuse/germany == value( 9, uint8), iif(present/preference_maps/pref_peatland == value(1, uint2), value(-6.4, float32), value( 13.6, float32)))"
+ 		   							",	case(present/landuse/germany == value(10, uint8), value( 134, float32) * switch("
+		   									"	case(present/thematic_maps/naturelandscape/ageforests <= value(5, float32), value(0.0,float32))"
+		   									",	case(And(present/thematic_maps/naturelandscape/ageforests >  value( 5, float32), present/thematic_maps/naturelandscape/ageforests <=  value( 21, float32)), value(0.0525, float32) * float32(present/thematic_maps/naturelandscape/ageforests) - value(0.085, float32))"
+ 		   									",	case(And(present/thematic_maps/naturelandscape/ageforests >  value(21, float32), present/thematic_maps/naturelandscape/ageforests <=  value( 43, float32)), value(1.05, float32))"
+ 		   									",	case(And(present/thematic_maps/naturelandscape/ageforests >  value(43, float32), present/thematic_maps/naturelandscape/ageforests <=  value(120, float32)), value(-0.007, float32) * float32(present/thematic_maps/naturelandscape/ageforests) + value(1.35, float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/ageforests > value(120, float32), value(0.50,float32))"
+ 		   									",	value(0,float32)"
+ 		   								"))"
+ 		   							",	case(present/landuse/germany == value(11, uint8), value( 0.2, float32) * value(134, float32))"
+ 		   							",	case(present/landuse/germany == value(12, uint8), value(-6.4, float32))"
+		   							",	case(present/landuse/germany == value(13, uint8), value(   0, float32))"
+		   							", value(0, float32)"
+		   						")";
+		   							
+		
+		attribute<float32> CarbonSequestration (domain_grid): IsHidden = "True",
+		   				Expr  = "switch("
+		   							"	case(results/landuse/model <= value( 6, uint8), value(0, float32))"
+		   							",	case(results/landuse/model == value( 7, uint8), float32(1.0 / 3.0 * 0.0) + float32(1.0 / 3.0 * 13.6) + (float32(1.0 / 3.0 * 134.0) *  switch("
+		   									"	case(results/landuse/AnderungenVorherigerZeitschritt/Age <= value(5, float32), value(0.0,float32))"
+		   									",	case(And(results/landuse/AnderungenVorherigerZeitschritt/Age >  value( 5, float32), results/landuse/AnderungenVorherigerZeitschritt/Age <=  value( 21, float32)), value(0.0525, float32) * float32(results/landuse/AnderungenVorherigerZeitschritt/Age) - value(0.085, float32))"
+ 		   									",	case(And(results/landuse/AnderungenVorherigerZeitschritt/Age >  value(21, float32), results/landuse/AnderungenVorherigerZeitschritt/Age <=  value( 43, float32)), value(1.05, float32))"
+ 		   									",	case(And(results/landuse/AnderungenVorherigerZeitschritt/Age >  value(43, float32), results/landuse/AnderungenVorherigerZeitschritt/Age <=  value(120, float32)), value(-0.007, float32) * float32(results/landuse/AnderungenVorherigerZeitschritt/Age) + value(1.35, float32))"
+ 		   									",	case(results/landuse/AnderungenVorherigerZeitschritt/Age > value(120, float32), value(0.50,float32))"
+ 		   									",	value(0,float32)"
+		   								")))"
+		   							",	case(results/landuse/model == value( 8, uint8), value(-28.3, float32) * switch("
+		   									"	case(present/thematic_maps/naturelandscape/carboncontent == value(1, uint8), value(0.0,float32))"
+		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(2, uint8), value(0.2,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(3, uint8), value(0.3,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(4, uint8), value(0.5,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(5, uint8), value(0.7,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(6, uint8), value(0.9,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(7, uint8), value(1.4,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(8, uint8), value(1.7,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(9, uint8), value(2.1,float32))"
+ 		   									",	case(present/thematic_maps/naturelandscape/carboncontent == value(10, uint8), value(3.2,float32))"
+ 		   									",	value(0,float32)"
+ 		   								"))"
+ 		   							",	case(results/landuse/model == value( 9, uint8), iif(present/preference_maps/pref_peatland == value(1, uint2), value(-6.4, float32), value( 13.6, float32)))"
+ 		   							",	case(results/landuse/model == value(10, uint8), value( 134, float32) * switch("
+		   									"	case(results/landuse/AnderungenVorherigerZeitschritt/Age <= value(5, float32), value(0.0,float32))"
+		   									",	case(And(results/landuse/AnderungenVorherigerZeitschritt/Age >  value( 5, float32), results/landuse/AnderungenVorherigerZeitschritt/Age <=  value( 21, float32)), value(0.0525, float32) * float32(results/landuse/AnderungenVorherigerZeitschritt/Age) - value(0.085, float32))"
+ 		   									",	case(And(results/landuse/AnderungenVorherigerZeitschritt/Age >  value(21, float32), results/landuse/AnderungenVorherigerZeitschritt/Age <=  value( 43, float32)), value(1.05, float32))"
+ 		   									",	case(And(results/landuse/AnderungenVorherigerZeitschritt/Age >  value(43, float32), results/landuse/AnderungenVorherigerZeitschritt/Age <=  value(120, float32)), value(-0.007, float32) * float32(results/landuse/AnderungenVorherigerZeitschritt/Age) + value(1.35, float32))"
+ 		   									",	case(results/landuse/AnderungenVorherigerZeitschritt/Age > value(120, float32), value(0.50,float32))"
+ 		   									",	value(0,float32)"
+ 		   								"))"
+ 		   							",	case(results/landuse/model == value(11, uint8), value( 0.2, float32) * value(134, float32))"
+ 		   							",	case(results/landuse/model == value(12, uint8), value(-6.4, float32))"
+		   							",	case(results/landuse/model == value(13, uint8), value(   0, float32))"
+		   							", value(0, float32)"
+		   						")";
+		   						
+		parameter<float32> CarbonSequestration2009_Germany: Expr = "sum(CarbonSequestration2009)";
+		parameter<float32> CarbonSequestration2009ha_Germany: Expr = "CarbonSequestration2009_Germany / sum(iif(present/landuse/germany >= value(1, uint8), value(1, float32), value(0, float32)))";
+		parameter<float32> CarbonSequestration_Germany: Expr = "sum(CarbonSequestration)";
+		parameter<float32> CarbonSequestrationha_Germany: Expr = "CarbonSequestration_Germany / sum(iif(present/landuse/germany >= value(1, uint8), value(1, float32), value(0, float32)))";
+		
+		attribute<float32> CarbonSequestrationUrban2009 (domain_grid): IsHidden = "True"
+		 	 ,	Expr = "iif(present/landuse/isurban == value(TRUE, YesorNo), CarbonSequestration2009, value(0, float32))";
+		attribute<float32> CarbonSequestrationUrban (domain_grid): IsHidden = "True"
+			 ,	Expr = "iif(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), CarbonSequestration, value(0, float32))";
+		attribute<float32> area_kreise (Geography/RegionDomains/Kreise): IsHidden = "True"
+			 ,	Expr = "sum(iif(present/landuse/germany >= value(1, uint8), value(1, float32), value(0, float32)), Geography/RegionGrids/Kreise)";
+			 
+		parameter<float32> CarbonSequestrationUrbanha2009_Germany: 	Expr = "sum(CarbonSequestrationUrban2009) / sum(iif(present/landuse/isurban == value(TRUE, YesorNo), value(1, float32), value(0, float32)))";
+		parameter<float32> CarbonSequestrationUrbanha_Germany: 		Expr = "sum(CarbonSequestrationUrban) / sum(iif(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), value(1, float32), value(0, float32)))";
+		
+		attribute<float32> CarbonSequestrationUrbanChange2009 (domain_grid): IsHidden = "True"
+			 ,	Expr = "iif(Or(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), present/landuse/isurban == value(TRUE, YesorNo)), CarbonSequestration2009, value(0, float32))";
+		attribute<float32> CarbonSequestrationUrbanChange (domain_grid): IsHidden = "True"
+		 	 ,	Expr = "iif(Or(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), present/landuse/isurban == value(TRUE, YesorNo)), CarbonSequestration, value(0, float32))";
+		
+		parameter<float32> CarbonSequestrationUrbanChangeha2009_Germany: Expr = "sum(CarbonSequestrationUrbanChange2009) / sum(iif(Or(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), present/landuse/isurban <= value(TRUE, YesorNo)), value(1, float32), value(0, float32)))";
+		parameter<float32> CarbonSequestrationUrbanChangeha_Germany: 	 Expr = "sum(CarbonSequestrationUrbanChange)     / sum(iif(Or(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), present/landuse/isurban <= value(TRUE, YesorNo)), value(1, float32), value(0, float32)))";
+		
+		parameter<float32> DiffCarbonSequestrationUrbanChangeha_Germany: 	 Expr = "CarbonSequestrationUrbanChangeha_Germany - CarbonSequestrationUrbanChangeha2009_Germany";
+		
+	}
+	
+	attribute <float32> CS01_CarbonSequestration2009ha (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(Preparation/CarbonSequestration2009, Geography/RegionGrids/Kreise) / Preparation/area_kreise";
+			
+	attribute <float32> CS01_CarbonSequestrationha (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(Preparation/CarbonSequestration, Geography/RegionGrids/Kreise) / Preparation/area_kreise";
+		
+	attribute <float32> CS02_CarbonSequestrationUrban2009 (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(Preparation/CarbonSequestrationUrban2009, Geography/RegionGrids/Kreise)  / sum(iif(present/landuse/isurban == value(TRUE, YesorNo),value (1, float32), value(0, float32)),Geography/RegionGrids/Kreise)";
+	
+	attribute <float32> CS02_CarbonSequestrationUrban (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(Preparation/CarbonSequestrationUrban, Geography/RegionGrids/Kreise)  / sum(iif(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo),value (1, float32), value(0, float32)),Geography/RegionGrids/Kreise)";
+	
+	attribute <float32> CS03_CarbonSequestrationUrbanChange2009 (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(Preparation/CarbonSequestrationUrbanChange2009, Geography/RegionGrids/Kreise)  / sum(iif(Or(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), present/landuse/isurban <= value(TRUE, YesorNo)), value(1, float32), value(0, float32)), Geography/RegionGrids/Kreise)";
+	
+	attribute <float32> CS03_CarbonSequestrationUrbanChange (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "sum(Preparation/CarbonSequestrationUrbanChange, Geography/RegionGrids/Kreise)  / sum(iif(Or(results/landuse/AnderungenVorherigerZeitschritt/isurban == value(TRUE, YesorNo), present/landuse/isurban <= value(TRUE, YesorNo)), value(1, float32), value(0, float32)), Geography/RegionGrids/Kreise)";
+			
+	attribute <float32> CS04_DiffCarbonSequestrationUrbanChange (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "CS03_CarbonSequestrationUrbanChange - CS03_CarbonSequestrationUrbanChange2009";
+
+	
+	container SubIndicator_CarbonSequestration
+		{	
+			attribute <float32> Ind_CS01_CarbonSequestrationLU(Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "	iif((float32((CS01_CarbonSequestrationha / Preparation/CarbonSequestration2009ha_Germany)) * value(100, float32)) > value(200, float32), value(200, float32),
+									iif((float32((CS01_CarbonSequestrationha / Preparation/CarbonSequestration2009ha_Germany)) * value(100, float32)) > value(  0, float32),
+									float32((CS01_CarbonSequestrationha / Preparation/CarbonSequestration2009ha_Germany)) * value(100, float32), value(0, float32)))";
+		
+			attribute <float32> Ind_CS02_CarbonSequestrationUrban (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "	iif((float32((CS02_CarbonSequestrationUrban / Preparation/CarbonSequestrationUrbanha2009_Germany)) * value(100, float32)) > value(200, float32), value(200, float32),
+									iif((float32((CS02_CarbonSequestrationUrban / Preparation/CarbonSequestrationUrbanha2009_Germany)) * value(100, float32)) > value(  0, float32),
+									float32((CS02_CarbonSequestrationUrban / Preparation/CarbonSequestrationUrbanha2009_Germany)) * value(100, float32), value(0, float32)))";
+				
+			attribute <float32> Ind_CS03_CarbonSequestrationUrbanChange (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "	iif((float32((CS03_CarbonSequestrationUrbanChange / Preparation/CarbonSequestrationUrbanChangeha2009_Germany)) * value(100, float32)) > value(200, float32), value(200, float32),
+									iif((float32((CS03_CarbonSequestrationUrbanChange / Preparation/CarbonSequestrationUrbanChangeha2009_Germany)) * value(100, float32)) > value(  0, float32),
+									float32((CS03_CarbonSequestrationUrbanChange / Preparation/CarbonSequestrationUrbanChangeha2009_Germany)) * value(100, float32), value(0, float32)))";
+									
+			attribute <float32> Ind_CS04_DiffCarbonSequestrationUrbanChange (Geography/RegionDomains/Kreise): IsHidden = "True"
+					,	Expr	= "	iif((float32((CS04_DiffCarbonSequestrationUrbanChange / Preparation/DiffCarbonSequestrationUrbanChangeha_Germany)) * value(100, float32)) > value(200, float32), value(200, float32),
+									iif((float32((CS04_DiffCarbonSequestrationUrbanChange / Preparation/DiffCarbonSequestrationUrbanChangeha_Germany)) * value(100, float32)) > value(  0, float32),
+									float32((CS04_DiffCarbonSequestrationUrbanChange / Preparation/DiffCarbonSequestrationUrbanChangeha_Germany)) * value(100, float32), value(0, float32)))";
+
+		}
+		
+	attribute <float32> IND_CS (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr	= "(value(0.5, float32) * SubIndicator_CarbonSequestration/Ind_CS02_CarbonSequestrationUrban) + (value(0.5, float32) * SubIndicator_CarbonSequestration/Ind_CS04_DiffCarbonSequestrationUrbanChange)";
+				
+		
+	attribute <float32> IND_CS_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr 	= "IND_CS - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_CarbonSequestrationEF/IND_CS";
+				
+	attribute <float32> IND_CS_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
+			,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_CarbonSequestrationEF/IND_CS + IND_CS_DIFF_BL";
+			
+}

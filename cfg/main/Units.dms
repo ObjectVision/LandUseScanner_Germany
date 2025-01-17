@@ -1,0 +1,47 @@
+container Units
+{
+	unit<Float32> Meter:          Expr = "BaseUnit('m', float32)", cdf = "Classifications/m_dist/ClassBreaks";
+	unit<Float32> km:             Expr = "1000.0 * Meter";
+	unit<Float32> dm:             Expr = "   0.1 * Meter";
+	unit<Float32> m2:             Expr = "Meter * Meter";
+	unit<Float32> luHa:           Expr = "10000.0 * m2";
+	unit<Float32> luHaVerschil:   Expr = "luHa";
+
+	unit<Float32> claimHa:        Expr = "luHa";
+	unit<Float32> claimHa2:       Expr = "claimHa * claimHa";
+
+	unit<Float32> Ratio:          Expr = "1.0 * luHa / luHa"; //          cdf = "Classifications/Ratio10k/Classes";
+	unit<Float32> Prozent:        Expr = "100.0 * luHa / luHa";
+	unit<Float32> euro:           Expr = "BaseUnit('euro', float32)";
+	unit<Float32> euro_Ha:        Expr = "euro / luHa";
+	unit<Float32> euro_M2:        Expr = "euro / m2",                    cdf = "Classifications/Euro_M2_10K/ClassBreaks";
+	unit<Float32> M2_euro:        Expr = "1.0 / euro_M2";
+
+	unit<Float32> degrees:        Expr = "BaseUnit('Degrees', float32)", cdf = "Classifications/slope/ClassBreaks";
+	unit<Float32> population:	  Expr = "BaseUnit('Population', float32)", cdf = "Classifications/pop/ClassBreaks";
+	unit<Float32> EW_km2:		  Expr = "BaseUnit('EW_km2', float32)", cdf = "Classifications/popdens/ClassBreaks";
+	unit<Float32> db:			  Expr = "BaseUnit('Decibel', float32)", cdf = "Classifications/noise/ClassBreaks";
+	
+//	temporal units
+	unit<Float32> jahr:             Expr = "BaseUnit('Yr', float32)";
+	unit<float32> jahrlich:         Expr = "float32(1) / jahr";
+	unit<Float32> Prozent_jahrlich: Expr = "Prozent / jahr";
+	unit<Float32> euro_M2_jahrlich: Expr = "euro / m2 / jahr";
+	unit<Float32> minutes:			Expr = "BaseUnit('Minute', float32)", cdf = "Classifications/min_acc/ClassBreaks";
+	
+//  time and speed
+	unit<Float32> Sec:              Expr = "BaseUnit('s', float32)";
+	unit<Float32> Min:              Expr = "60.0 * Sec";
+	unit<Float32> Hr:               Expr = "60.0 * Min";
+	unit<Float32> Day:				Expr = "24.0 * Hr";
+	unit<Float32> km_Hr:            Expr = "km / Hr";
+	unit<Float32> m_s:              Expr = "meter / Sec";
+	
+// ============ Artificial quantities for suitability factors, must be related to euro_M2
+
+	unit<Float32> Potential;
+	unit<Float32> PPot:				Expr = "BaseUnit('PPot', float32)", cdf = "Classifications/Ppotential/ClassBreaks";
+	unit<Float32> indexValue:	  	Expr = "BaseUnit('IndexValue', float32)", cdf = "Classifications/ua_index/ClassBreaks";
+	unit<Float32> msqr:	  			Expr = "BaseUnit('MSQR', float32)", cdf = "Classifications/sqr/ClassBreaks";
+	unit<float32> KWh_m2:			Expr = "BaseUnit('KWh_m2', float32)",cdf = "Classifications/KWh/ClassBreaks" ;
+}

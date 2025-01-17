@@ -1,0 +1,29 @@
+container ModelRuns: Using = "Units;classifications"
+{
+	container Baseline := 
+		for_each_ne(
+			Years/name
+			, 'Templates/AllocatePeriod_ggModel_T('+quote(Years/name)+', ''Baseline'')'
+		), Descr = "Stabilitätszenario"
+	{
+		parameter<string> Generate_AllYear := 'Ready', ExplicitSuppliers = "=AsList(Years/name+'/results/LandUse/Model', ';')";
+	}
+	
+	container Trend := 
+		for_each_ne(
+			Years/name
+			, 'Templates/AllocatePeriod_ggModel_T('+quote(Years/name)+', ''Trend'')'
+		), Descr = "Trendszenario"
+	{
+		parameter<string> Generate_AllYear := 'Ready', ExplicitSuppliers = "=AsList(Years/name+'/results/LandUse/Model', ';')";
+	}
+	
+	container Dynamik := 
+		for_each_ne(
+			Years/name
+			, 'Templates/AllocatePeriod_ggModel_T('+quote(Years/name)+', ''Dynamik'')'
+		), Descr = "Dynamikszenario"
+	{
+		parameter<string> Generate_AllYear := 'Ready', ExplicitSuppliers = "=AsList(Years/name+'/results/LandUse/Model', ';')";
+	}
+}

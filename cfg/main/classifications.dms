@@ -1,0 +1,448 @@
+container Classifications :	Using    = "Units"
+{
+	unit<uint8> Years : nrofrows = 5
+	{
+		attribute<uint16> StartYear := IsFirst ? uint16(ModelParameters/StartYear) : ModelYear[id(.) - min_elem( id(.), 1b)];
+		attribute<uint16> ModelYear : [2025, 2030, 2035, 2040, 2045];
+		attribute<string> name     := 'Y'+string(ModelYear);
+		attribute<string> label    := name;
+		attribute<bool>   IsFirst  := id(.) == 0b;
+		attribute<string> PrevName := IsFirst ? 'Start' : name[id(.) - min_elem( id(.), 1b)];
+	}
+
+	// Land Use
+	container LU
+	{
+		unit<uint8> EK : nrofrows = 16, Descr = "table of codes used in land use source data; the ModelType_rel does not have to be unique"
+		{
+			attribute<uint32> BrushColor  := rgb(R,G / 256,B / 256 / 256), DialogType = "BrushColor"; // get it as first option in the Export to TIFF dialog
+			attribute<uint32> SymbolColor := BrushColor, DialogType = "SymbolColor";
+			
+			parameter<uint32> nrAttr := 7;
+			
+			unit<UInt32> Elements := Range(uint32, 0, nrAttr * #ModelType)
+			{
+				attribute<String> Text: // @USERINPUT: RGB Code nocht aktualisieren
+				[ 
+					//code ,Name,                   , Descr.                                    	  	 ,ModelType_rel   ,  r   , g   , b
+					   '0','outside_study_area'     ,'outside study area'                       	   	,'0'  	    	  ,'230','230','200'
+					,'110','Wohn_Misch'				,'Wohn- und Mischgebiete'                   		,'1'  	    	  ,'255',' 85','  0'
+					,'120','BesFktPrg' 				,'Gebiete besonderer funktionaler Praegung' 		,'2'        	  ,'230','  0','  0'
+					,'130','Industrie_Gewerbe'      ,'Industrie- und Gebwerbegebiete'        			,'3'        	  ,'245','122','122'
+					,'150','Siedlungsfreiflaeche'   ,'Siedlungsfreiflaeche'                   			,'4'   	    	  ,'255','211','127'
+					,'200','Verkehr'                ,'Verkehrsflaeche'                          		,'5' 	    	  ,'130','130','130'
+					, '10','Acker'					,'Acker'											,'6'              ,'255','235','175'
+					, '20','Gruenland'              ,'Gruenland'                                	    ,'7' 	    	  ,'152','230','  0'
+					, '30','sonstLW'                ,'sonstige landwirtschaftliche Flaechen'    	    ,'8'	    	  ,'168','112','  0'
+					, '40','Wald_Gehoelz'           ,'Wald und Gehoelz'                		        	,'9'	    	  ,' 76','115','  0'
+					, '50','unkultiv'        	    ,'unkultiviertes Land'                    			,'10'	    	  ,'233','255','190'
+					, '60','Wasser'         	    ,'Gewaesserflaechen'                        	    ,'11'	    	  ,'  0','112','255'
+					, '70','Abbau'               	,'Abbau und Halden'                         	    ,'12'	    	  ,'137',' 68','101'
+					,'180','FreiflaechenPV'      	,'Freiflaechen-Photovoltaikanlagen'            	    ,'13'	    	  ,'255','255','  0'
+					,'190','Windparkflaeche'       	,'Windparkflaeche'                            	    ,'14'	    	  ,'232','190','255'
+					,'255','unbestimmt'             ,'unbestimmte Landnutzung'                  	    ,'15'	    	  ,'200','200','200'
+				];
+			}
+			attribute<uint16> code  := uint16(Elements/Text[value(UInt32(ID(.))* nrAttr + 0, Elements)]);
+			attribute<String> Name  :=        Elements/Text[value(UInt32(ID(.))* nrAttr + 1, Elements)];
+			attribute<String> Descr :=        Elements/Text[value(UInt32(ID(.))* nrAttr + 2, Elements)];
+			attribute<ModelType> ModelType_rel :=   value(Elements/Text[value(UInt32(ID(.))* nrAttr + 3, Elements)], ModelType);
+			attribute<uint32> r := uint32(Elements/Text[value(UInt32(ID(.))* nrAttr + 5, Elements)]);
+			attribute<uint32> g := uint32(Elements/Text[value(UInt32(ID(.))* nrAttr + 6, Elements)])*256;
+			attribute<uint32> b := uint32(Elements/Text[value(UInt32(ID(.))* nrAttr + 7, Elements)])*256*256;
+			
+			attribute<String> Label := Descr, DialogType = "LabelText";
+		}
+		unit<uint16> EK_Values := Range(EK, 0[UInt16], max(EK/code)+1[UInt16])
+		{
+			attribute<EK>        EK_rel := MakeDefined(invert(value(EK/code, EK_Values)), 0[EK]), IntegrityCheck = "pcount(value(EK/code, EK_Values)) <= 1[EK]";
+			attribute<ModelType> ModelType_rel := EK/ModelType_rel[EK_rel];
+		}
+		
+		unit<uint8> ModelType: nrofrows = 16
+		{
+			attribute<uint32> BrushColor := rgb(R,G / 256,B / 256 / 256), DialogType = "BrushColor"; // get it as first option in the Export to TIFF dialog
+			attribute<uint32> SymbolColor := BrushColor, DialogType = "SymbolColor"; // get it as first option in the Export to TIFF dialog
+			
+			parameter<uint32> nrAttr := 23;
+			unit<UInt32> Elements := Range(uint32, 0, nrAttr*#ModelType)
+			{
+				attribute<String> Text: // @USERINPUT
+				[ 
+					// Name,                  , Label                     			 	 		 , Descr.                                        	,IsExogen   , r   , g   , b	    ,IsUrban  ,IsFreeLand ,MinClaimFactor ,MaxClaimFactor	,IsUrban_oUG,	IsArable, 	IsPasture, 	IsAgri,		IsGreen		IsUrbanFabric, IsRenewable, IsPV,       IsWKA,     RegioRef         ,IsFreeLand_ohneEE ,IsUrbanWKAPV
+					 'outside_study_area'     ,'outside study area'        			 	 		 ,'outside study area'                          	,'True'     ,'230','230','200'	,'False'  ,'False'    ,'1.0000'	      ,'1.0000'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'False'           ,'False'          
+					,'Wohn_Misch'			  ,'Wohn- und Mischgebiete'   		   	 	 		 ,'Wohn- und Mischgebiete'                      	,'False'    ,'255',' 85','  0'	,'True'   ,'False'    ,'0.7000'	      ,'1.2500'			, 'True'		, 'False'	,'False'	,'False'	,'False'	,'True' ,      'False',    'False',    'False',    'Kreise'         ,'False'           ,'True'          
+					,'BesFktPrg' 			  ,'Gebiete besonderer funktionaler Praegung'		 ,'Gebiete besonderer funktionaler Praegung' 		,'False'    ,'230','  0','  0'	,'True'   ,'False'    ,'0.7000'	      ,'1.2500'			, 'True'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'False'           ,'True'          
+					,'Industrie_Gewerbe'      ,'Industrie- und Gebwerbegebiete'          		 ,'Industrie- und Gebwerbegebiete'   				,'False'    ,'245','122','122'	,'True'   ,'False'    ,'0.7000'	      ,'1.2500'			, 'True'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'False'           ,'True'          
+					,'Siedlungsfreiflaeche'   ,'Siedlungsfreiflaeche'  					 		 ,'Siedlungsfreiflaeche'          					,'False'    ,'255','211','127'	,'True'   ,'False'    ,'0.7000'	      ,'1.2500'			, 'False'		, 'False'	,'False'	,'False'	,'True'	    ,'False',      'False',    'False',    'False',    'Kreise'         ,'False'           ,'True'          
+					,'Verkehr'             	  ,'Verkehrsflaeche'        				 		 ,'Verkehrsflaeche'                           		,'False'    ,'130','130','130'	,'True'   ,'False'    ,'0.7000'       ,'1.2500'			, 'True'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'False'           ,'True'          
+					,'Acker'				  ,'Acker'        	   						 		 ,'Acker'                          		   			,'False'    ,'255','235','175'	,'False'  ,'True'     ,'0.7000'	      ,'1.2500'			, 'False'		, 'True'	,'False'	,'True' 	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'True'            ,'False'           
+					,'Gruenland'              ,'Gruenland'                   			 		 ,'Gruenland'                                    	,'False'    ,'152','230','  0'	,'False'  ,'True'     ,'0.7000'	      ,'1.2500'			, 'False'		, 'False'	,'True'		,'True'		,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'True'            ,'False'           
+					,'sonstLW'                ,'sonstige landwirtschaftliche Flaechen'  		 ,'sonstige landwirtschaftliche Flaechen'           ,'False'    ,'168','112','  0'	,'False'  ,'True'     ,'0.7000'       ,'1.2500'			, 'False'		, 'False'	,'False'	,'True' 	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'True'            ,'False'           
+					,'Wald_Gehoelz'           ,'Wald und Gehoelz'                		 		 ,'Wald und Gehoelz'                         	    ,'False'    ,' 76','115','  0'	,'False'  ,'True'     ,'0.7000'       ,'1.2500'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'True'            ,'False'           
+					,'unkultiv'        	      ,'unkultiviertes Land'             		    	 ,'unkultiviertes Land'                             ,'True'     ,'233','255','190'	,'False'  ,'True'     ,'0.7000'       ,'1.2500'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'	        ,'True'     		,'False'    		     								
+					,'Wasser'         	      ,'Gewaesserflaechen'               				 ,'Gewaesserflaechen'                               ,'True'     ,'  0','112','255'	,'False'  ,'True'     ,'1.0000'	      ,'1.0000'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'True'            ,'False'          
+					,'Abbau'                  ,'Abbau und Halden'                		 		 ,'Abbau und Halden'                                ,'True'    ,'137',' 68','101'	,'False'  ,'True'     ,'0.7000'       ,'1.2500'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'True'            ,'False'           
+					,'FreiflaechenPV'         ,'Freiflaechen-Photovoltaikanlagen'     		     ,'Freiflaechen-Photovoltaikanlagen'                ,'False'    ,'255','255','  0'	,'False'  ,'True'     ,'0.7000'       ,'1.2500'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'True',     'True',     'False',    'Bundeslaender'  ,'False'           ,'True'          
+					,'Windparkflaeche'        ,'Windparkflaeche'                   		      	 ,'Windparkflaeche'                    			    ,'False'    ,'232','190','255'	,'False'  ,'True'     ,'0.7000'       ,'1.2500'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'True',     'False',    'True',     'Bundeslaender'  ,'False'           ,'True'          
+					,'unbestimmt'             ,'unbestimmte Landnutzung'         		      	 ,'unbestimmte Landnutzung'                         ,'True'     ,'200','200','200'  ,'False'  ,'True'     ,'1.0000'       ,'1.0000'			, 'False'		, 'False'	,'False'	,'False'	,'False'	,'False',      'False',    'False',    'False',    'Kreise'         ,'True'            ,'False'           
+				];
+			}
+			attribute<string>      id_str            := string(id(.));
+			attribute<String>      Name              := Elements/Text[value(UInt32(ID(.))* nrAttr + 0, Elements)];
+			attribute<String>      Label             := Elements/Text[value(UInt32(ID(.))* nrAttr + 1, Elements)], DialogType = "LabelText";
+			attribute<String>      Descr             := Elements/Text[value(UInt32(ID(.))* nrAttr + 2, Elements)];
+			attribute<Bool>        IsExogeen         := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 3, Elements)]);
+			attribute<uint32>      r                 := uint32(Elements/Text[value(UInt32(ID(.))* nrAttr + 4, Elements)]);
+			attribute<uint32>      g                 := uint32(Elements/Text[value(UInt32(ID(.))* nrAttr + 5, Elements)])*256;
+			attribute<uint32>      b                 := uint32(Elements/Text[value(UInt32(ID(.))* nrAttr + 6, Elements)])*256*256;
+			attribute<Bool>	       IsUrban           := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 7, Elements)]);
+			attribute<Bool>	       IsFreeLand        := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 8, Elements)]);
+			attribute<ratio>       MinClaimFactor    := float32(Elements/Text[value(UInt32(ID(.))* nrAttr + 9, Elements)]);
+			attribute<ratio>       MaxClaimFactor    := float32(Elements/Text[value(UInt32(ID(.))* nrAttr + 10, Elements)]);
+			attribute<Bool>	       IsUrban_oUG       := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 11, Elements)]);
+			attribute<Bool>	       IsArable          := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 12, Elements)]);
+			attribute<Bool>	       IsPasture         := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 13, Elements)]);
+			attribute<Bool>	       IsAgri            := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 14, Elements)]);
+			attribute<Bool>        IsGreen           := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 15, Elements)]);
+			attribute<Bool>        IsUrbanFabric     := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 16, Elements)]);
+			attribute<Bool>        IsRenewable       := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 17, Elements)]);
+			attribute<Bool>        IsPV              := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 18, Elements)]);
+			attribute<Bool>        IsWKA             := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 19, Elements)]);
+			attribute<String>      RegioRef          := Elements/Text[value(UInt32(ID(.))* nrAttr + 20, Elements)];   //hilft das für die Claims Krs, Lnd?
+			attribute<Bool>        IsFreeLand_ohneEE := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 21, Elements)]);
+			attribute<Bool>        IsUrbanWKAPV      := bool(Elements/Text[value(UInt32(ID(.))* nrAttr + 22, Elements)]);
+			attribute<Bool>        IsAllocatable     := not(IsExogeen);
+			attribute<AllocType>   AllocType_rel     := invert(AllocType/org_rel);
+			attribute<LU_Urban>    LU_Urban_rel      := invert(LU_Urban/org_rel);
+			attribute<LU_FreeLand> LU_FreeLand_rel   := invert(LU_FreeLand/org_rel);
+
+			container V := for_each_nedv(Name, string(id(.))+'[..]', void, .);
+		}
+		
+		unit<uint8> AllocType := select_with_org_rel(ModelType/IsAllocatable)
+		{
+			attribute<string> Name           := ModelType/Name[org_rel];
+			attribute<string> Label          := ModelType/label[org_rel], DialogType = "LabelText";
+			attribute<uint32> BrushColor     := ModelType/BrushColor[org_rel], DialogType = "BrushColor";
+			attribute<ratio>  MinClaimFactor := ModelType/MinClaimFactor[org_rel];
+			attribute<ratio>  MaxClaimFactor := ModelType/MaxClaimFactor[org_rel];
+			attribute<String> RegioRef       := ModelType/RegioRef[org_rel];
+			attribute<.>      nr := id(.);
+			attribute<string> id_str := String(nr);
+			
+			container V := for_each_nedv(Name, string(id(.))+'[..]', void, .);
+		}
+		
+		unit<uint8> LU_Urban := select_with_org_rel(ModelType/IsUrban)
+		{
+			attribute<String> Name  := ModelType/Name[org_rel];
+			attribute<uint32> BrushColor := ModelType/BrushColor[org_rel], DialogType = "BrushColor";
+			attribute<String> Label := ModelType/Label[org_rel],   DialogType = "LabelText";
+			attribute<.>      nr := id(.);
+			attribute<string> id_str := String(nr);
+		}
+		
+		unit<uint8> LU_FreeLand := select_with_org_rel(ModelType/IsFreeLand)
+		{
+			attribute<String> Name  := ModelType/Name[org_rel];
+			attribute<uint32> BrushColor := ModelType/BrushColor[org_rel], DialogType = "BrushColor";
+			attribute<String> Label := ModelType/Label[org_rel],   DialogType = "LabelText";
+			attribute<.>      nr := id(.);
+			attribute<string> id_str := String(nr);
+		}
+
+	}
+	
+	//Soil Sealing
+	unit<uint8> Sealing: nrofrows = 10
+	{
+		attribute<uint8>  ClassBreaks : [  0, 10,  20,  30,  40,  50,60, 70,  80,  90], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(  0,192,  0),rgb( 51,205,  0),rgb(102,217,  0),rgb(153,230,  0),rgb(204,242,  0),rgb(255,255,  0),rgb(255,191,  0),rgb(255,128,  0),rgb(255,064,  0),rgb(255,  0,  0)], DialogType = "BrushColor";
+		attribute<string> Label       : [' 0 .. 10 %','10 ..  20 %','20 ..  30 %','30 ..  40 %','40 ..  50 %','50 .. 60 %','60 ..  70 %','70 ..  80 %','80 ..  90 %','90 .. 100 % '], DialogType = "LabelText";
+	}
+	
+	// Policy
+	unit<uint2> Policy
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(77,172,38),rgb(255,255,255),rgb(235,235,235)], DialogType = "BrushColor";
+		attribute<String> Label      : ['No Policy','Policy','','Abroad'], DialogType = "LabelText";
+	}
+	
+	unit<uint2> Policy_Levels
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(171,221,164),rgb(43,131,186),rgb(235,235,235)],  DialogType = "BrushColor";
+		attribute<String> Label      : ['No Policy','Policy Low','Policy High','Abroad'], DialogType = "LabelText";
+	}
+	
+	// Restriction
+	unit<uint2> Restriction
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(255,200,0),rgb(255,255,255),rgb(235,235,235)], DialogType = "BrushColor";
+		attribute<String> Label      : ['No Restriction','Restriction','','Abroad'], DialogType = "LabelText";
+	}
+	
+	// Preference
+	unit<uint2> Preference
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(255,200,0),rgb(255,255,255),rgb(235,235,235)], DialogType = "BrushColor";
+		attribute<String> Label      : ['No Preference','Preference','','Abroad'], DialogType = "LabelText";
+	}
+	
+	// Preference
+	unit<uint8> Soils: nrofrows = 8
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(166,206,227),rgb(31,120,180),rgb(178,223,138),rgb(51,160,44),rgb(251,154,153),rgb(227,26,28),rgb(253,191,111)], DialogType = "BrushColor";
+		attribute<String> Label      : ['Outside Study Area','Soils of Coasts and bogs','Soils of large river valleys incl. terrasses and lowlands','Soils of hilly lowlands and hills','Soils of loess areas','Soils of hills and mountain ranges','Soils of high mountains','man-made structures and water bodies'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> SoilQual: nrofrows = 5
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(255,255,212),rgb(254,217,142),rgb(254,153, 41),rgb(204, 76,  2)], DialogType = "BrushColor";
+		attribute<String> Label      : ['Outside Study Area','EM < 33, mostly forest','EM < 33, low suitability','EM 33-64, suitability average to good','EM > 64, suitability good'], DialogType = "LabelText";
+	}
+
+	unit<uint8> SoilCarbonContent: nrofrows = 11
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(15,15,15),rgb(255,255,229),rgb(255,247,188),rgb(254,227,145),rgb(254,196,79),rgb(254,153,41),rgb(236,112,20),rgb(204,76,2),rgb(153,52,4),rgb(102,37,6)], DialogType = "BrushColor";
+		attribute<String> Label      : ['Outside Study Area','man-made structures, waterbodies, no information','1  ... < 2%','2 ... < 3%','3 ... < 4%','4 ... < 6%','6 ... < 8%','8 ... < 11.5%','11.5 ... < 15%','15 ... < 30%','>30%'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> Landslide: nrofrows = 6
+	{
+		attribute<UInt32> BrushColor : [rgb(100,100,100),rgb(255,255,255),rgb(255,255,212),rgb(254,217,142),rgb(254,153, 41),rgb(204, 76,  2)], DialogType = "BrushColor";
+		attribute<String> Label      : ['Outside Study Area','Very Low','Low','Moderate','High','Very High'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> PublicTransport: nrofrows = 4
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(254,217,142),rgb(254,153, 41),rgb(204, 76,  2)], DialogType = "BrushColor";
+		attribute<String> Label      : ['No Frequent Public Transport','Within 900m to Tram or Tube','Within 1200m to Train','Within 600m to Bus'], DialogType = "LabelText";
+	}
+	
+	// ============= YesorNo
+	unit<bool> YesorNo
+	{
+		attribute<UInt32> BrushColor : [rgb(192,192,192),rgb(255,0,0)], DialogType = "BrushColor";
+		attribute<String> Label      : ['No','Yes'], DialogType = "LabelText";
+	}
+	
+	parameter<YesorNo> Yes: [True];
+	parameter<YesorNo> No : [False];
+	
+	unit<uint2> YesorNoInt
+	{
+		attribute<UInt32> BrushColor : [rgb(255,255,255),rgb(255,80,0),rgb(255,255,255),rgb(235,235,235)], DialogType = "BrushColor";
+		attribute<String> Label      : ['No','Yes','',''], DialogType = "LabelText";
+	}
+	
+
+	// ============= OperatorType
+	unit<uint8> OperatorType: nrofrows = 3
+	{
+		attribute<UInt32> BrushColor : [rgb(192,192,192),rgb(128,0,255),rgb(255,128,255)], DialogType = "BrushColor";
+		attribute<String> Label      : ['less-or-equal (max.)','equal','greater or equal (min.)'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> m_elevation: nrofrows = 10
+	{
+		attribute<Meter>  ClassBreaks : [  -215,  0,  50, 100, 200,300, 400, 500, 800, 1000], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(  0,192,  0),rgb( 51,205,  0),rgb(102,217,  0),rgb(153,230,  0),rgb(204,242,  0),rgb(255,255,  0),rgb(255,191,  0),rgb(255,128,  0),rgb(255,064,  0),rgb(255,  0,  0)], DialogType = "BrushColor";
+		attribute<string> Label       : ['    < 0 m','  0 ..   50 m','  50 .. 100 m','100 .. 200 m','200 .. 300 m','300 .. 400 m'   ,'400 .. 500 m'  ,'500 .. 800 m' ,'800 .. 1000 m','>= 1000 m '], DialogType = "LabelText";
+	}
+	
+	unit<uint8> slope: nrofrows = 5
+	{
+		attribute<degrees> ClassBreaks : [0, 3, 8, 15, 30], DialogType = "Classification";
+		attribute<uint32>  BrushColor  : [rgb(56, 168, 0), rgb(139, 209, 0), rgb(255, 255, 0), rgb(255, 128, 0), rgb(255, 0, 0)], DialogType = "BrushColor";
+		attribute<string>  Label       : ['Flat to gently sloping','Gently sloping','Sloping','Moderatly sloping','Steep'], DialogType = "LabelText";
+	}
+	unit<uint8> sqr: nrofrows = 6
+	{
+		attribute<Float32> ClassBreaks : [  0,  1, 20, 40, 60, 80], DialogType = "Classification";
+		attribute<uint32>  BrushColor  : [rgb(211,255,190),rgb(255,  0,  0),rgb(230,152,  0),rgb(230,230,  0),rgb(56,168,  0),rgb(  0,115, 76)], DialogType = "BrushColor";
+		attribute<string>  Label       : ['  no agriculture','  <= 20','  20 ..  40 ','40 .. 60 ',' 60 .. 80 ', '>= 80 '], DialogType = "LabelText";
+	}
+	
+	unit<uint8> pop: nrofrows = 10
+	{
+		attribute<population> ClassBreaks : [   0, 2.5, 5, 10, 20, 35, 50, 100, 200, 400], DialogType = "Classification";
+		attribute<uint32>     BrushColor  : [rgb( 69,117,181),rgb(110,143,184),rgb(153,174,189),rgb(192,204,190),rgb(233,237,190),rgb(255,233,173),rgb(250,185,132),rgb(242,141, 97),rgb(230, 96, 67),rgb(214, 47, 39)], DialogType = "BrushColor";
+		attribute<string>     Label       : ['  0     ..  2.5   EW','  2.5   ..  5 EW','  5 ..  10   EW','  10   ..  20   EW','  20   ..  35   EW','  35   ..  50   EW','  50   .. 100   EW','100   .. 200   EW','200   .. 400   EW','>= 400 EW'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> popdens: nrofrows = 6
+	{
+		attribute<EW_km2> ClassBreaks : [   0,  50, 100, 200, 500, 1000], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(255,230,153),rgb(255,204,102),rgb(255,153, 77),rgb(255, 89, 51),rgb(255, 38, 25),rgb(230,  0,  0)], DialogType = "BrushColor";
+		attribute<string> Label       : ['       0  ..   50 EW/km2','      50  ..  100 EW/km2','    100  ..  200 EW/km2','    200  ..  500 EW/km2','    500  .. 1000 EW/km2','>= 1000 EW/km2'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> Ppotential: nrofrows = 10
+	{
+		attribute<PPot>   ClassBreaks : [   0, 0.002, 0.004, 0.008, 0.02,0.04, 0.08, 0.2, 0.4, 0.8], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb( 69,117,181),rgb(110,143,184),rgb(153,174,189),rgb(192,204,190),rgb(233,237,190),rgb(255,233,173),rgb(250,185,132),rgb(242,141, 97),rgb(230, 96, 67),rgb(214, 47, 39)], DialogType = "BrushColor";
+		attribute<string> Label       : ['  0     ..  0.002','  0.002   ..  0.004','  0.004 ..  0.008','  0.008   ..  0.02','  0.02   ..  0.04','  0.04   ..  0.08','  0.08   .. 0.2','0.2   .. 0.4','0.04   .. 0.08','>= 0.08'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> ua_index: nrofrows = 10
+	{
+		attribute<indexValue> ClassBreaks : [   0, 0.05, 0.1, 0.2, 0.4,0.6, 0.8, 1, 2, 3], DialogType = "Classification";
+		attribute<uint32>     BrushColor  : [rgb( 69,117,181),rgb(110,143,184),rgb(153,174,189),rgb(192,204,190),rgb(233,237,190),rgb(255,233,173),rgb(250,185,132),rgb(242,141, 97),rgb(230, 96, 67),rgb(214, 47, 39)], DialogType = "BrushColor";
+		attribute<string>     Label       : ['  0     ..  0.05','  0.05   ..  0.1','  0.1 ..  0.2  ','  0.2   ..  0.4  ','  0.4   ..  0.6 ','  0.6   ..  0.8 ','  0.8   .. 1.0 ','1.0   .. 2  ','2   .. 3 ','>= 3 '], DialogType = "LabelText";
+	}
+	
+	unit<uint8> noise: nrofrows = 6
+	{
+		attribute<db>     ClassBreaks : [   0, 55, 60, 65, 70, 75 ], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(211,255,190),rgb(56,100,  0),rgb(56,168,  0),rgb(230,230,  0),rgb(230,152,  0),rgb(255,  0,  0)  ], DialogType = "BrushColor";
+		attribute<string> Label       : ['  0     ..  54','  55   ..  59','  60 ..  64  ','  65   ..  69  ','  70   ..  74  ','  >= 75 ' ], DialogType = "LabelText";
+	}
+	
+	unit<uint8> m_dist: nrofrows = 10
+	{
+		attribute<Meter>  ClassBreaks : [   0, 100, 250, 500, 1000,2500, 5000, 10000, 20000, 50000], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(  0,192,  0),rgb( 51,205,  0),rgb(102,217,  0),rgb(153,230,  0),rgb(204,242,  0),rgb(255,255,  0),rgb(255,191,  0),rgb(255,128,  0),rgb(255, 64,  0),rgb(255,  0,  0)], DialogType = "BrushColor";
+		attribute<string> Label       : ['  0     ..  0.1   km','  0.1   ..  0.25 km','  0.25 ..  0.5   km','  0.5   ..  1.0   km','  1.0   ..  2.5   km','  2.5   ..  5.0   km','  5.0   .. 10.0   km','10.0   .. 20.0   km','20.0   .. 50.0   km','>= 50.0 km'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> min_acc: nrofrows = 10
+	{
+		attribute<minutes> ClassBreaks  : [   0, 5, 10, 20, 30,45, 60, 90, 120, 180], DialogType = "Classification";
+		attribute<uint32>  BrushColor   : [rgb(  0,192,  0),rgb( 51,205,  0),rgb(102,217,  0),rgb(153,230,  0),rgb(204,242,  0),rgb(255,255,  0),rgb(255,191,  0),rgb(255,128,  0),rgb(255, 64,  0),rgb(255,  0,  0)], DialogType = "BrushColor";
+		attribute<string>  Label        : ['  0     ..  5   min','  5   ..  10 min','  10 ..  20   min','  20   ..  30   min','  30   ..  45   min','  45   ..  60   min','  1.0   .. 1.5   h','1.5   .. 2.0   h','2.0   .. 3.0   h','>= 3.0 h'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> days: nrofrows = 11
+	{
+		attribute<Day>    ClassBreaks : [   0, 5, 10, 15, 20,25, 30, 35, 40, 45, 50], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(255,255,204),rgb(255,237,160),rgb(254,217,118),rgb(254,178, 76),rgb(253,141, 60),rgb(252,98, 50),rgb(252, 78, 42),rgb(227, 26, 28),rgb(189,  0, 38),rgb(128,  0, 38), rgb(102, 0,  12)], DialogType = "BrushColor";
+		attribute<string> Label       : ['   0   ..   5   days','  5   ..  10   days','  10   ..  15   days','  15   ..  20   days','  20   ..  25   days','  25   ..  30   days',' 30   ..  35   days','  35   ..  40   days','  40   ..  45   days','  45   ..  50   days','>= 50 days'], DialogType = "LabelText";
+	}
+
+	unit<uint8> KWh: nrofrows = 10
+	{
+		attribute<KWh_m2> ClassBreaks : [   0, 910000, 915000, 920000, 925000, 935000, 970000, 1000000, 1015000, 1550000], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(  0,192,  0),rgb( 51,205,  0),rgb(102,217,  0),rgb(153,230,  0),rgb(204,242,  0),rgb(255,255,  0),rgb(255,191,  0),rgb(255,128,  0),rgb(255, 64,  0),rgb(255,  0,  0)], DialogType = "BrushColor";
+		attribute<string> Label       : ['  0     ..  910 MWh_m2','  910   ..  915 MWh_m2','  915 ..  920   MWh_m2','  920   ..  925   MWh_m2','  925   ..  935   MWh_m2','  935   ..  970   MWh_m2','  970   .. 1000   MWh_m2','1000   .. 1015  MWh_m2','1015   .. 2000   MWh_m2','>= 2000 MWh_m2'], DialogType = "LabelText";
+	}
+
+	unit<int8> DifferenceMaps
+	{
+		attribute<int8>   ClassBreaks : [-1, 0, 1], DialogType = "Classification";
+		attribute<UInt32> BrushColor  : [rgb(171,221,164),rgb(255,255,255), rgb(43,131,186)], DialogType = "BrushColor";
+		attribute<String> Label       : ['Loss of land use','No Change','New land use'], DialogType = "LabelText";
+	}
+
+	unit<uint8> Euro_10K: nrofrows = 10
+	{
+		attribute<euro>   ClassBreaks : [   0,  10,  50, 100,  200,300, 400, 500, 750, 1000], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(255,  0,  0),rgb(255, 64,  0),rgb(255,128,  0),rgb(255,191,  0),rgb(255,255,  0),rgb(204,242,  0),rgb(153,230,  0),rgb(102,217,  0),rgb( 51,205,  0),rgb(  0,192,  0)], DialogType = "BrushColor";
+		attribute<string> Label       : ['    0 -    10 $','  10 -   50 $','  50 - 100 $','100 - 200 $','200 - 300 $','300 - 400 $'    ,'400 - 500 $'  ,'500 - 750 $' ,'750 - 999','>=10000 $'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> ratio_10K: nrofrows = 10
+	{
+		attribute<ratio>  ClassBreaks : [0.00, 0.05, 0.10, 0.15, 0.20,0.25, 0.30, 0.40, 0.60, 0.80], DialogType = "Classification";
+		attribute<uint32> BrushColor  : [rgb(  0,192,  0),rgb( 51,205,  0),rgb(102,217,  0),rgb(153,230,  0),rgb(204,242,  0),rgb(255,255,  0),rgb(255,191,  0),rgb(255,128,  0),rgb(255, 64,  0),rgb(255,  0,  0)], DialogType = "BrushColor";
+		attribute<string> Label       : ['  0 -   5 %','  5 - 10 %','10 - 15 %','15 - 20 %','20 - 25 %','25 - 30 %'  , '30 - 40 %','40 - 60 %','60 - 80 %',' >= 80%'], DialogType = "LabelText";
+	}
+	unit<uint8> Euro_M2_10K: nrofrows = 10
+	{
+		attribute<euro_M2> ClassBreaks : [   -10000, -50,  -25,  -10, 0,  10,  25,  50, 100], DialogType = "Classification";
+		attribute<uint32>  BrushColor  : [rgb(255,  0,  0),rgb(255, 64,  0),rgb(255,128,  0),rgb(255,191,  0),rgb(255,255,  0),			 rgb(204,242,  0),rgb(153,230,  0),rgb(102,217,  0),rgb( 51,205,  0),rgb(  0,192,  0)], DialogType = "BrushColor";
+		attribute<string>  Label       : [' < -50 €²',' -50 - -25 €²',' -25 -   -10 €²',' -10 -  0 €²',' 0 -  10 €²',' 10 -  25 €²',' 25 -  50 €²' ,' 50 - 100 €²','>=100 €²'], DialogType = "LabelText";
+	}
+
+	unit<uint8> ClaimHa9K: nrofrows = 9
+	{
+		attribute<claimHa> Classes    : [0,  2000, 5000,10000, 20000,50000,100000,300000,1E+006], DialogType = "Classification";
+		attribute<UInt32>  BrushColor : [rgb(192,192,192),rgb(  0,  0,255),rgb( 32, 64,224),rgb( 64,128,192),rgb( 96,192,160),rgb(128,255,128),rgb(170,170, 85),rgb(212, 85, 42),rgb(255,  0,  0)], DialogType = "BrushColor";
+		attribute<String>  Label      : ['        0 -     2.000','    2.000 -     5.000','    5.000 -    10.000','   10.000 -    20.000','   20.000 -    50.000','   50.000 -   100.000','  100.000 -   300.000','  300.000 - 1.000.000','1.000.000 - 4.000.000'], DialogType = "LabelText";
+	}
+	
+	unit<uint8> Gem: nrofrows = 16
+	{
+		attribute<UInt32> ClassBreaks:
+		[
+			    1000,  2000,  3000,  4000
+		,	    5000,  5500,  6000,  6500
+		,		7000,  8000,  9000,  9500
+		,  	   10000, 10500, 11000, 12000
+		], DialogType = "Classification";
+
+		attribute<UInt32> BrushColor : 
+		[
+			rgb(192,192,192),rgb(  0,  0,255),rgb( 32, 64,224), rgb( 76, 80,100)
+		,	rgb( 64,128,192),rgb( 96,192,160),rgb(128,255,128), rgb(100,200,100)
+		,	rgb(170,170, 85),rgb(212, 85, 42),rgb(255,  0,  0), rgb(200,  0,  0)
+		,   rgb(100,100, 85),rgb(200,100, 42),rgb(200,  0,100), rgb(200,100,100)
+		], DialogType = "BrushColor";
+
+		attribute<String> Label : 
+		[
+			'1.000.000 -     2.000.000','    2.000.000 -     3.000.000','    3.000.000 -    4.000.000','    4.000.000 -    5.000.000'
+		,	'5.000.000 -     6.000.000','    6.000.000 -     7.000.000','    7.000.000 -    8.000.000','    8.000.000 -    9.000.000'
+		,	'9.000.000 -    10.000.000','    10.000.000 -    11.000.000','   11.000.000 -   12.000.000','   12.000.000 -   13.000.000'
+		,	'13.000.000 -   14.000.000','    14.000.000 -    15.000.000','   15.000.000 -   16.000.000','   16.000.000 -   17.000.000'
+		];
+	}
+	
+	/// roads
+	
+	unit<uint32> highway_maintype : NrOfRows = 25
+	{
+		attribute<String> VALUES: [
+			'track',
+			'residential',
+			'service',
+			'footway',
+			'path',
+			'unclassified',
+			'tertiary',
+			'secondary',
+			'cycleway',
+			'primary',
+			'steps',
+			'living_street',
+			'motorway',
+			'motorway_link',
+			'pedestrian',
+			'road',
+			'trunk',
+			'primary_link',
+			'trunk_link',
+			'construction',
+			'bridleway',
+			'secondary_link',
+			'platform',
+			'proposed',
+			'tertiary_link'
+		];
+		
+		attribute<UInt32> count := pcount(germany_roads/RoadType);
+		attribute<km_hr>  Speed : [ 0, 30, 0, 0, 0, 10, 50, 60, 0, 80, 0, 30, 100, 100, 0, 50, 100, 100, 100, 0, 10, 50, 0, 0, 40];
+		attribute<m_s>    CarSpeedInside_ms  := Speed[m_s] * 0.9[Ratio];
+		attribute<m_s>    CarSpeedOutside_ms := Speed[m_s] * 1.1[Ratio];
+	}
+	
+	unit<uint32> place_maintype: NrOfRows = 11
+	{
+		attribute<String> VALUES: [
+			'village',
+			'hamlet',
+			'locality',
+			'suburb',
+			'town',
+			'isolated_dwelling',
+			'farm',
+			'region',
+			'city',
+			'state',
+			'country'
+		];
+		attribute<Float32> Weight: [ 1, 0.5, 0, 0, 3, 0, 0, 0, 5, 0, 0 ];
+		attribute<UInt32> count := pcount(germany_places/maintype_rel);
+	}
+
+}

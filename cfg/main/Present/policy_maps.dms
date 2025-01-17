@@ -1,0 +1,73 @@
+
+container policy_maps
+{
+	//Naturschutz
+	/*ersetzt, 20.03.2024*/ attribute<Classifications/Policy> 		 nature_reserves (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_nsg.tif";
+	/*ntp Puffer ersetzt, 21.04.2024, ntp normal fehlt noch*/ attribute<Classifications/Policy> 		 national_parks  (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_ntp.tif";
+	/*ersetzt, 21.04.2024*/ attribute<Classifications/Policy> 		 ffh (domain_grid): StorageName 					= "%LUS_DataDir%/policy/pol_ffh.tif";
+	/*bereits ersetzt, 11.03.2024*/ attribute<Classifications/Policy> 		 spa (domain_grid): StorageName 					= "%LUS_DataDir%/policy/pol_spa.tif";
+	/*ersetzt, 21.04.2024*/ attribute<Classifications/Policy> 		 ramsar (domain_grid): StorageName 					= "%LUS_DataDir%/policy/pol_ramsar.tif";
+	/*ersetzt, 21.04.2024*/ attribute<Classifications/Policy> biosphere_reserves_core (domain_grid): StorageName = "%LUS_DataDir%/policy/pol_biosphaerenreservat_kern.tif";
+	/*ersetzt, 21.04.2024*/ attribute<Classifications/Policy> 		 biosphere_reserves_development (domain_grid): StorageName = "%LUS_DataDir%/policy/pol_biosphaerenreservat_erweiterung.tif";
+	/*ersetzt, 21.04.2024*/ attribute<Classifications/Policy>		 lsg (domain_grid): StorageName						= "%LUS_DataDir%/policy/pol_lsg.tif";
+	/*ersetzt, 21.04.2024*/ attribute<Classifications/Policy>		 np (domain_grid): StorageName						= "%LUS_DataDir%/policy/pol_np.tif";
+	attribute<Classifications/YesOrNo>		 AllNatureProtectionAreas (domain_grid): Expr = "(nature_reserves > value(0, Classifications/Policy)&& nature_reserves < value(3, Classifications/Policy))"
+																							" || (national_parks > value(0, Classifications/Policy) && national_parks < value(3, Classifications/Policy))"
+																							" || (ffh > value(0, Classifications/Policy) && ffh < value(3, Classifications/Policy))"
+																							" || (spa > value(0, Classifications/Policy) && spa < value(3, Classifications/Policy))"
+																							" || (ramsar > value(0, Classifications/Policy) && ramsar < value(3, Classifications/Policy))"
+																							" || (biosphere_reserves_core > value(0, Classifications/Policy) && biosphere_reserves_core < value(3, Classifications/Policy))"
+																							" || (biosphere_reserves_development > value(0, Classifications/Policy) && biosphere_reserves_development < value(3, Classifications/Policy))", Label = "All nature protection areas except LSG";
+	//attribute<Classifications/Policy_Levels> 		 nature_reserves_buffer (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_nsg_buffer.tif";
+	//attribute<Classifications/Policy_Levels> 		 national_parks_buffer  (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_ntp_buffer.tif";
+	attribute<Classifications/YesOrNo>		 AllNatureProtectionAreasInclLSG (domain_grid): Expr = "(nature_reserves > value(0, Classifications/Policy)&& nature_reserves < value(3, Classifications/Policy))"
+																							" || (national_parks > value(0, Classifications/Policy) && national_parks < value(3, Classifications/Policy))"
+																							" || (ffh > value(0, Classifications/Policy) && ffh < value(3, Classifications/Policy))"
+																							" || (spa > value(0, Classifications/Policy) && spa < value(3, Classifications/Policy))"
+																							" || (ramsar > value(0, Classifications/Policy) && ramsar < value(3, Classifications/Policy))"
+																							" || (lsg > value(0, Classifications/Policy) && lsg < value(3, Classifications/Policy))"
+																							" || (biosphere_reserves_core > value(0, Classifications/Policy) && biosphere_reserves_core < value(3, Classifications/Policy))"
+																							" || (biosphere_reserves_development > value(0, Classifications/Policy) && biosphere_reserves_development < value(3, Classifications/Policy))", Label = "All nature protection areas incl. LSG";
+	attribute<Classifications/YesOrNo>		 AllNatureProtectionAreasHigh (domain_grid): Expr = "(nature_reserves > value(0, Classifications/Policy)&& nature_reserves < value(3, Classifications/Policy))"
+																							" || (national_parks > value(0, Classifications/Policy) && national_parks < value(3, Classifications/Policy))"
+																							" || (ffh > value(0, Classifications/Policy) && ffh < value(3, Classifications/Policy))"
+																							" || (spa > value(0, Classifications/Policy) && spa < value(3, Classifications/Policy))"
+																							" || (biosphere_reserves_core > value(0, Classifications/Policy) && biosphere_reserves_core < value(3, Classifications/Policy))", Label = "All nature protection areas with high status";
+	attribute<Classifications/YesOrNo>		 AllNatureProtectionAreasLow (domain_grid): Expr = "(ramsar > value(0, Classifications/Policy) && ramsar < value(3, Classifications/Policy))"
+																							" || (lsg > value(0, Classifications/Policy) && lsg < value(3, Classifications/Policy))"
+																							" || (biosphere_reserves_development > value(0, Classifications/Policy) && biosphere_reserves_development < value(3, Classifications/Policy))", Label = "All nature protection areas with low status";
+																							
+
+	//Militärische Flächen
+	/*ersetzt, 21.04.2024*/ attribute<Classifications/Policy> 		 military_training_areas (domain_grid): StorageName = "%LUS_DataDir%/policy/pol_military_training.tif";
+	//Raumplanung
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> flood_protection (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_Hochwasserschutz.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> green_corridor (domain_grid): StorageName 			= "%LUS_DataDir%/policy/pol_gruenzug.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> mineral_planning (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_rohstoffsicherung.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> nature_landscape (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_natur_landschaft.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> ground_surface_water (domain_grid): StorageName 	= "%LUS_DataDir%/policy/pol_grund_oberflaechenwasserschutz.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> agriculture (domain_grid): StorageName 			= "%LUS_DataDir%/policy/pol_landwirtschaft.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> forestry (domain_grid): StorageName 				= "%LUS_DataDir%/policy/pol_forstwirtschaft.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> soil_protection (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_bodenschutz.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> open_space (domain_grid): StorageName 				= "%LUS_DataDir%/policy/pol_sonstiger_freiraumschutz.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> residential (domain_grid): StorageName 			= "%LUS_DataDir%/policy/pol_wohnbereich.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> industry_commercial (domain_grid): StorageName 	= "%LUS_DataDir%/policy/pol_industrie_gewerbe.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> retail (domain_grid): StorageName 					= "%LUS_DataDir%/policy/pol_einzelhandel.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> settlement (domain_grid): StorageName 				= "%LUS_DataDir%/policy/pol_sonstiger_siedlungsbereich.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> noise_protection (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_laermschutzbereich.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> sports (domain_grid): StorageName 					= "%LUS_DataDir%/policy/pol_sport.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> settlement_climate_protection (domain_grid): StorageName = "%LUS_DataDir%/policy/pol_siedlungsklimaschutz.tif";
+	attribute<Classifications/Policy> afforestation (domain_grid): StorageName 		    = "%LUS_DataDir%/policy/pol_waldmehrung.tif";
+	
+	//
+	
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> freizeit_erholung (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_freizeit_erholung.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> achsen (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_achsen.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> siedlungsentwicklung_allgemein (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_siedlungsentwicklung_allgemein.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> gemeindefunktion_wohnen (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_gemeindefunktion_wohnen.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> solarenergie (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_solarenergie.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> windenergie (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_windenergie.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> erneuerbare_energien (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_erneuerbare_energien.tif";
+	/*ersetzt, 04.05.2024*/ attribute<Classifications/Policy_Levels> bergbau_sanierung (domain_grid): StorageName 		= "%LUS_DataDir%/policy/pol_bergbau_sanierung.tif";
+	
+}

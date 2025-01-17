@@ -1,0 +1,192 @@
+container Geography: Using = "Units"
+{
+	// Projection:
+	unit<fpoint> dla   : SpatialReference = "EPSG:3035", Descr = "German Lambert Coordinates";
+	unit<dpoint> WGS84 : SpatialReference = "EPSG:4326", Descr = "WGS84, aka LatLong";
+	
+	unit<spoint> dla_100m :=
+	// resolution    100m
+	// ncols         6500
+	// nrows         8800
+		range(
+			gridset(
+				  dla
+				, point(float32(100.0)  ,float32(-100.0) , dla) 
+				, point(float32(4030000),float32(3560000), dla) 
+				, spoint
+			)
+		, point(Int16(0)   , Int16(0))
+		, point(Int16(6500),Int16(8800))
+		), Descr = "rdCoords/100m van NW naar SE (6500 rows x 8800 cols in 5x5 tiles of 1300 rows x 1760 cols each)"
+	{
+		parameter<luHa>   nrHaPerCel := value(abs(PointCol(GetProjectionFactor(.)) * PointRow(GetProjectionFactor(.))), m2) / 10000[m2 / luha];
+	}
+	
+	unit<spoint> dla_50m:=
+	// resolution    50m
+	// ncols         6500 * 2 = 13000
+	// nrows         8800 * 2 = 17600
+		range(
+			gridset(
+				  dla
+				, point(float32(50.0)  ,float32(-50.0) , dla) 
+				, point(float32(4030000),float32(3560000), dla) 
+				, spoint
+			)
+		, point(Int16(0)   , Int16(0))
+		, point(Int16(13000),Int16(17600))
+		)
+	{
+		parameter<luHa>   nrHaPerCel:= value(abs(PointCol(GetProjectionFactor(.)) * PointRow(GetProjectionFactor(.))), m2) / 10000[m2 / luha];
+	}
+	unit<spoint> dla_250m:=
+	// resolution    250m
+	// ncols         6500 / 2.5 = 2600
+	// nrows         8800 / 2.5 = 3520
+		range(
+			gridset(
+				  dla
+				, point(float32(250.0)  ,float32(-250.0) , dla) 
+				, point(float32(4030000),float32(3560000), dla) 
+				, spoint
+			)
+		, point(Int16(0)   , Int16(0))
+		, point(Int16(2600),Int16(3520))
+		)
+	{
+		parameter<luHa>   nrHaPerCel:= value(abs(PointCol(GetProjectionFactor(.)) * PointRow(GetProjectionFactor(.))), m2) / 10000[m2 / luha];
+	}
+	
+	unit<spoint> dla_1000m:=
+	// resolution    1000m
+	// ncols         6500 / 10 = 650
+	// nrows         8800 / 10 = 880
+		range(
+			gridset(
+				  dla
+				, point(float32(1000.0)  ,float32(-1000.0) , dla) 
+				, point(float32(4030000),float32(3560000), dla) 
+				, spoint
+			)
+		, point(Int16(0)   , Int16(0))
+		, point(Int16(650),Int16(880))
+		)
+	{
+		parameter<luHa>   nrHaPerCel:= value(abs(PointCol(GetProjectionFactor(.)) * PointRow(GetProjectionFactor(.))), m2) / 10000[m2 / luha];
+	}
+	
+	unit<spoint> SelRect:= range(Geography/dla_100m, Point(0s,3000s), Point(4000s,6000s));
+	
+	container Regions
+	{
+		container Kreise //auf den Stand 2020 aktualisiert (401 Kreise)
+		{
+			unit<uint16> vat_key;
+			attribute<vat_key> TiffData(dla_100m): StorageName = "%LUS_DataDir%/regions/regional_divisions_kreise_.tif";
+			
+			attribute<vat>     GridData(dla_100m) := rlookup(TiffData, vat/value);
+			
+			unit<uint16> vat : StorageName = "%LUS_DataDir%/regions/regional_divisions_kreise_.tif.vat.dbf", StorageReadOnly = "True", KeepData = "True", DialogType = "Map", DialogData = "GridData"
+				{
+					attribute<vat_key> value;
+					attribute<uint32> count;
+					attribute<uint32> ags_int  := uint32(ags), disablestorage = "TRUE";
+					attribute<string> ags;	
+					attribute<string> label  := rjoin(ags_int,kreise_namen/code_int,kreise_namen/name) , DialogType = "LabelText", disablestorage = "TRUE"; 
+				}
+			unit<uint16> kreise_namen : StorageName = "%LUS_DataDir%/regions/kreise_names2.dbf", StorageReadOnly = "True" //noch aktualisieren
+				{
+					attribute<uint32> code_int  := uint32(code), disablestorage = "TRUE";
+					attribute<string> name;	
+					attribute<uint32> code: Ishidden = "TRUE";
+					attribute<string> BL_name;	
+					attribute<uint32> BL_code: Ishidden = "TRUE";
+				}
+			unit<uint16> kreise_ref : StorageName = "%LUS_DataDir%/regions/krs16-ref.dbf", StorageReadOnly = "True" // noch aktualisieren
+				{
+					attribute<uint32> code_int  := uint32(code), disablestorage = "TRUE";
+					attribute<string> name;	
+					attribute<uint32> code: Ishidden = "TRUE";
+				}
+	
+		}
+		
+		container Bundeslaender //auf den Stand 2020 aktualisiert
+		{
+			unit<uint16> vat_key;
+			attribute<vat_key> TiffData(dla_100m): StorageName = "%LUS_DataDir%/regions/regional_divisions_bl_16bit.tif";
+			
+			attribute<vat>     GridData(dla_100m) := rlookup(TiffData, vat/value);
+			
+			unit<uint16> vat : StorageName = "%LUS_DataDir%/regions/regional_divisions_bl_16bit.tif.vat.dbf", StorageReadOnly = "True", KeepData = "True", DialogType = "Map", DialogData = "GridData"
+				{
+					attribute<vat_key> value;
+					attribute<uint32> count;
+					attribute<uint32> ags_int  := uint32(ags), disablestorage = "TRUE";
+					attribute<string> BL_name : Ishidden = "TRUE";
+				}				
+		}	
+
+		container Gemeinden //auf den Stand 2020 aktualisiert
+		{
+			unit<uint16> vat_key;
+			attribute<vat_key> TiffData(dla_100m): StorageName = "%LUS_DataDir%/regions/regional_divisions_gemeinden.tif";
+			
+			attribute<vat>     GridData(dla_100m) := rlookup(TiffData, vat/value);
+			
+			unit<uint16> vat : StorageName = "%LUS_DataDir%/regions/regional_divisions_gemeinden.tif.vat.dbf", StorageReadOnly = "True", KeepData = "True", DialogType = "Map", DialogData = "GridData"
+				{
+					attribute<vat_key> value;
+					attribute<uint32> count;
+					attribute<uint32> ags_int  := uint32(ags), disablestorage = "TRUE";
+				}
+		}	
+	}
+	
+	// re-grouping of specific data of Regios to support references from the allocation script.
+	container RegionDomains
+	{
+		unit<uint16> Kreise := Regions/Kreise/vat
+		{ 
+			parameter<String> IntrospectiveName: [ 'Kreise' ]; 
+		}
+		unit<uint16> Bundeslaender := Regions/Bundeslaender/vat
+		{ 
+			parameter<String> IntrospectiveName: [ 'Bundeslaender' ]; 
+		}
+		unit<uint16> Gemeinden := Regions/Gemeinden/vat
+		{
+			parameter<String> IntrospectiveName: [ 'Gemeinden' ]; 
+		}
+	}
+	
+	container RegionGrids
+	{
+		attribute<RegionDomains/Kreise>        Kreise        (dla_100m) := Regions/Kreise/GridData;
+		attribute<RegionDomains/Bundeslaender> Bundeslaender (dla_100m) := Regions/Bundeslaender/GridData;
+		attribute<RegionDomains/Gemeinden>     Gemeinden     (dla_100m) := Regions/Gemeinden/GridData;
+	}
+	
+	container DistMatrices
+	{
+		unit<UInt32>  Dist2Range;
+		
+		container pot500Range  := PotRange_T(500f);
+		container pot100Range  := PotRange_T(100f);
+		container pot20Range   := PotRange_T(20f);
+		container pot10Range   := PotRange_T(10f);
+		
+		template PotRange_T
+		{
+			parameter<float32>   straal;
+			///
+			unit<spoint> potRange:= range(spoint, point_yx(-int16(straal), -int16(straal)), point_yx(int16(straal) + 1s, int16(straal) + 1s)) 
+			{
+				attribute<Dist2Range> distMatr      := dist2(point(0s, 0s, potRange), Dist2Range);
+				attribute<Potential>  AbsWeight     := iif(distMatr <= 10100, Float32(1.0) / Float32(distMatr+2), Float32(0.0));
+				attribute<Potential>  RelWeight     := scalesum(AbsWeight, Float32(1.0) );
+				attribute<Potential>  RelWeightSqrt := scalesum(Sqrt(AbsWeight), Float32( 1.0) );
+			}
+		}
+	}
+}

@@ -1,0 +1,184 @@
+container RegionalClaimSets: Using = "Units;Classifications;Classifications/LU"
+{
+//	-------------TableChopper for processing claim tables -------------------------
+
+	Template TableChopper
+	{
+		parameter<String> FileName;
+		unit<uint16> RegionUnit;
+		attribute<Uint32> RegionKey(RegionUnit);
+		parameter<String> FieldSeparator;
+		
+		parameter<String> FileData: StorageType = "str", StorageName = "=FileName";
+		parameter<String> HeaderLine := readLines(FileData, void, 0);
+		parameter<Bool>   HeaderOK:= regex_match(HeaderLine, '[A-Za-z_][A-Za-z_0-9]*(;[A-Za-z_][A-Za-z_0-9]*)*'); // read quoted column names separated by semicolons and no other characters; consider parameterization.
+		
+		unit<UInt32> Field := Range(UInt32, 0, strcount(HeaderLine, FieldSeparator)+1)
+		{
+			attribute<String> Name := ReadArray(HeaderLine, Field, String, 0);
+		}
+		
+		unit<uint32> RowUnit := Range(uint16, 0, strcount(FileData, '\n')+1); 
+		attribute<String> BodyLines(RowUnit) := readLines(FileData, RowUnit, HeaderLine/ReadPos), IntegrityCheck = "HeaderOK";
+		attribute<Bool>   LinesOK  (RowUnit) := regex_match(BodyLines, '(-?+[0-9]++|\"[^\"]*+\")?+(;(-?+[0-9]++|\"[^\"]*+\")?+)*+'); // read quoted string or integers or nothing separated by semicolons and no other characters
+		
+		container DataStr := 
+			for_each_nedv(
+				Field/Name
+				, 'ReadElems(BodyLines, String, '+MakeDefined(Field/Name[sub_or_null(ID(Field),1)]+'/ReadPos','const(0, RowUnit)')+', 1)'
+				, RowUnit
+				, String
+			), IntegrityCheck = "LinesOK";
+
+		container DataNum := for_each_nedv(FocusYear/FieldName, 'ReadElems(DataStr/'+FocusYear/FieldName+', Float32, const(0, RowUnit), 1)', RowUnit, Float32)
+		{
+			attribute<UInt32> RegionCode(RowUnit) := ='ReadElems(DataStr/'+Field/Name[0]+', UInt32, const(0, RowUnit), 1)';
+			attribute<String> label     (RowUnit) := rjoin(RegionCode, RegionKey, RegionUnit/label);
+		}
+		container Data := for_each_nedv(FocusYear/FieldName, 'DataNum/'+FocusYear/FieldName+'[Row_rel]', RegionUnit, Float32)
+		{
+			attribute<RowUnit> Row_rel(RegionUnit) := rlookup(RegionKey, DataNum/RegionCode);
+		}
+	}
+	unit <UInt8> ClaimTable: NrOfRows = 13
+	{
+		attribute<string> Name: [
+			'Wohn_Misch',
+			'BesFktPrg',
+			'Industrie_Gewerbe',
+			'Siedlungsfreiflaeche',
+			'Verkehr',
+			'Acker',
+			'Gruenland',
+			'sonstLW',
+			'Wald_Gehoelz',
+			'unkultiv',
+			'Abbau',
+			'FreiflaechenPV',
+			'Windparkflaeche'
+		];
+		attribute<String> FileNameBase: [
+			'110_Wohn_Misch',
+			'120_BesFktPrg',
+			'130_Industrie_Gewerbe',
+			'150_Siedlungsfreiflaeche',
+			'200_Verkehr',
+			'10_Acker',
+			'20_Gruenland',
+			'30_sonstLW',
+			'40_Wald_Gehoelz',
+			'50_unkultiv',
+			'70_Abbau',
+			'180_FreiflaechenPV',
+			'190_Windparkflaeche'
+		];
+	}
+	
+	unit <UInt8> ClaimTable_Bundeslaender: NrOfRows = 2
+	{
+		attribute<string> Name: [
+			'FreiflaechenPV',
+			'Windparkflaeche'
+		];
+		attribute<String> FileNameBase: [
+			'180_FreiflaechenPV',
+			'190_Windparkflaeche'
+		];
+	}
+	
+	unit<uint8> FocusYear: NrOfRows = 7
+	{
+		attribute<Units/jahr> Year: [ 2022, 2025, 2030, 2035, 2040, 2045, 2050 ];
+		attribute<String>    FieldName := 'Y_'+String(Year);
+	}
+	container ImportData_Kreise := 
+		for_each_ne(
+			ClaimTable/Name
+			, 'TableChopper('+Quote('%Projdir%/data/RegionalClaimSets/'+ClaimTable/FileNameBase+'.csv')+', Geography/RegionDomains/Kreise, Geography/Regions/Kreise/vat/ags_int,'+Quote(';')+')'
+		);
+		
+	container ImportData_Bundeslaender := 
+		for_each_ne(
+			ClaimTable_Bundeslaender/Name
+			, 'TableChopper('+Quote('%Projdir%/data/RegionalClaimSets/'+ClaimTable_Bundeslaender/FileNameBase+'_BL.csv')+', Geography/RegionDomains/Bundeslaender, Geography/Regions/Bundeslaender/vat/ags_int,'+Quote(';')+')'
+		);
+		
+	container ImportData := 
+		for_each_ne(
+			AllocType/Name
+			, 'ImportData_'+AllocType/RegioRef+'/'+AllocType/Name+'/Data'
+		);
+		
+	
+	container Claim_Domains := 
+		for_each_nex(
+			AllocType/Name
+			, '/Geography/RegionDomains/'+AllocType/RegioRef
+			, uint16
+		);	
+		
+	container Claims := 
+		for_each_ne(
+			AllocType/Name
+			, 'Claim_T('+quote(AllocType/Name)+',Claim_Domains/'+AllocType/Name+','+String(AllocType/MinClaimFactor)+'[ratio],'+String(AllocType/MaxClaimFactor)+'[ratio])'
+		);
+		
+	Template Claim_T
+	{
+		parameter<string>  AllocType_name;
+		unit<uint16>       RegionUnit;
+		parameter<ratio>   MinClaimFactor;
+		parameter<ratio>   MaxClaimFactor;
+		// end case parameters
+
+		container per_Year :=
+			for_each_ne(
+				Years/Name
+				, 'Claim_PerYear_T('+quote(string(Years/ModelYear))+')'
+			);
+	}
+	
+	Template Claim_PerYear_T
+	{
+		parameter<string>  Year;
+		// end case parameters
+
+		attribute<Float32> Data       (RegionUnit) := ='ImportData/'+AllocType_name+'/Y_'+Year;
+		attribute<claimHa> Min        (RegionUnit) := Data[claimHa] * MinClaimFactor; 
+		attribute<claimHa> Max        (RegionUnit) := Data[claimHa] * MaxClaimFactor;
+	}
+	
+	// unit<UInt8> AllocType:= Classifications/LU/AllocType;
+	
+	// container g2025 := for_each_ne(AllocType/Name, 'Claim_T(ImportData/'+AllocType/Name+'/Data/Y_2025,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')
+	// {
+		// parameter<Units/jahr> StartYear: [ 2022 ];
+		// parameter<Units/jahr> FinalYear: [ 2025 ];
+	// }
+	// container g2030 := for_each_ne(AllocType/Name, 'Claim_T(ImportData/'+AllocType/Name+'/Data/Y_2030,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')
+	// {
+		// parameter<Units/jahr> StartYear: [ 2025 ];
+		// parameter<Units/jahr> FinalYear: [ 2030 ];
+	// }
+	// container g2035 := for_each_ne(AllocType/Name, 'Claim_T(ImportData/'+AllocType/Name+'/Data/Y_2035,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')
+	// {
+		// parameter<Units/jahr> StartYear: [ 2030 ];
+		// parameter<Units/jahr> FinalYear: [ 2035 ];
+	// }
+	// container g2040 := for_each_ne(AllocType/Name, 'Claim_T(ImportData/'+AllocType/Name+'/Data/Y_2040,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')
+	// {
+		// parameter<Units/jahr> StartYear: [ 2035 ];
+		// parameter<Units/jahr> FinalYear: [ 2040 ];
+	// }
+
+	// container g2045 := for_each_ne(AllocType/Name, 'Claim_T(ImportData/'+AllocType/Name+'/Data/Y_2045,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')
+	// {
+		// parameter<Units/jahr> StartYear: [ 2040 ];
+		// parameter<Units/jahr> FinalYear: [ 2045 ];
+	// }
+	// container g2050 := for_each_ne(AllocType/Name, 'Claim_T(ImportData/'+AllocType/Name+'/Data/Y_2050,' + String(AllocType/MinClaimFactor) +'[ratio], ' + String(AllocType/MaxClaimFactor) +'[ratio])')
+	// {
+		// parameter<Units/jahr> StartYear: [ 2045 ];
+		// parameter<Units/jahr> FinalYear: [ 2050 ];
+	// }
+}

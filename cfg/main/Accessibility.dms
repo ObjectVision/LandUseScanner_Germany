@@ -1,0 +1,130 @@
+container Accessibility : Using = "Units;classifications", url = "http://www.mantis.objectvision.nl.objectvision.hosting.it-rex.nl/view.php?id=288"
+{
+	container Import
+	{
+		unit<uint32> germany_roads
+		: StorageType = "gdal.vect"
+		, StorageName = "%LUS_DataDir%/OSM/germany_roads.shp"
+		, StorageReadOnly = "True"
+		{
+			attribute<Geography/dla>   Geometry (arc);
+			attribute<Int32>           OSM_ID;
+			attribute<String>          BRIDGE;
+			attribute<String>          HIGHWAY;
+			attribute<String>          TUNNEL;
+			
+			// attribute<highway_type>     TYPE_ID   := rlookup(HIGHWAY, highway_type/VALUES);
+			attribute<highway_maintype> highway_maintype_rel   := rlookup(HIGHWAY, highway_maintype/VALUES);
+			attribute<km_hr>            Speed := MakeDefined(highway_maintype/Speed[ highway_maintype_rel ], 0.0[km_hr]);
+		}
+		
+		unit<uint32> germany_places
+		: StorageType = "gdal.vect"
+		, StorageName = "%LUS_DataDir%/OSM/germany_places.shp"
+		, StorageReadOnly = "True"
+		{
+			attribute<Geography/dla>  Geometry;
+			attribute<Int32>          OSM_ID;
+			attribute<String>         Population;
+			attribute<String>         Type;
+			attribute<String>         Name;
+			// attribute<place_type>     Type_rel     := rlookup(Type, place_type/VALUES);
+			attribute<place_maintype> place_maintype_rel := rlookup(Type, place_maintype/VALUES);
+			attribute<UInt32>         Weight := iif(place_maintype/Weight[place_maintype_rel] > 0.0[Float32], MakeDefined(UInt32(Population), 0), 0);
+			attribute<String>         Label  := MakeDefined(Name, '') + MakeDefined(' in '+Type, ''), DialogType = "LabelText";
+		}
+	}
+	
+	unit<uint32> highway_type := Unique(Import/germany_roads/HIGHWAY)
+	{
+		// attribute<UInt32> count := pcount(Import/germany_roads/TYPE_ID);
+	}
+		
+	unit<uint32> selected_roads := select_with_org_rel(Import/germany_roads/Speed > 30.0[km_hr])
+	{
+		attribute<Geography/dla>    Geometry         (arc) := Import/germany_roads/Geometry[org_rel];
+		attribute<string>           highway                := Import/germany_roads/HIGHWAY[org_rel];
+		// attribute<km_hr>            Speed                  := Import/germany_roads/Speed[org_rel];
+		attribute<highway_maintype> highway_maintype_rel   := Import/germany_roads/highway_maintype_rel[org_rel];
+		attribute<km_hr>            Speed                  := MakeDefined(highway_maintype/Speed[highway_maintype_rel], 0.0[km_hr]);
+		attribute<highway_type>     highway_type_rel       := rlookup(HIGHWAY, highway_type/VALUES);
+		// attribute<highway_maintype> highway_maintype_rel   := rlookup(HIGHWAY, highway_maintype/VALUES);
+	}
+		
+	unit<uint32> place_type := Unique(Import/germany_places/Type)
+	{
+		// attribute<UInt32> count := pcount(Import/germany_places/type_rel);
+	}
+	
+	unit<uint32> selected_place  := select_with_org_rel(Import/germany_places/Weight > 10000)
+	{
+		attribute<Geography/dla>  Geometry           := Import/germany_places/Geometry[org_rel];
+		attribute<string>         Type               := Import/germany_places/Type[org_rel];
+		attribute<Float32>        Weight             := Float32(Import/germany_places/Weight[org_rel]);
+		attribute<String>         Label              := Import/germany_places/Label[org_rel];
+		attribute<place_maintype> place_maintype_rel := Import/germany_places/place_maintype_rel[org_rel];
+		
+		attribute<place_type>     place_type_rel     := rlookup(Type, place_type/VALUES);
+		// attribute<place_maintype> place_maintype_rel := rlookup(Type, place_maintype/VALUES);
+		
+		attribute<Float32>        SumWeight (Geography/dla_100m) := sum(Weight, Geometry[Geography/dla_100m]);
+	}
+
+	unit<uint32> DestCells:= select_with_org_rel(LU/ModelType/IsAllocatable[Present/LandUse/Germany])
+	{
+		attribute<Geography/dla>  Location := org_rel[Geography/dla];
+		attribute<LU/ModelType>   LandUse  := Present/LandUse/Germany[org_rel];
+	}
+	
+	container ImpedanceTraits 
+	{
+		unit<Float32> ImpUnit:= Min;
+		Template Calculator_T
+		{
+			unit<UInt32> LinkSet;
+			attribute<Geography/dla>    P1       (LinkSet);
+			attribute<Geography/dla>    P2       (LinkSet);
+			attribute<highway_maintype> RoadType (LinkSet);
+			///
+			attribute<min>              Result   (LinkSet) := ((dist(P1, P2)[Meter] / highway_maintype/Speed[ RoadType ][m_s]))[min];
+		}
+	}
+	
+	container Network := 
+			Templates/Network_T(
+				Geography/dla,
+				selected_place, 
+				DestCells,
+				selected_roads,
+				highway_maintype,
+				selected_place/Geometry,
+				DestCells/Location,
+				selected_roads/Geometry,
+				1[highway_maintype], // class for connection
+				ImpedanceTraits
+			);
+			
+	container PotentialCalc
+	{
+		unit<uint32> x := 
+			impedance_matrix('bidirectional;startPoint(Node_rel);endPoint(Node_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
+				,Network/OrgToDest/impedance
+				,Network/OrgToDest/F1
+				,Network/OrgToDest/F2
+				
+				,Network/OrgToDest/OrgNode_rel
+				,Network/OrgToDest/DestNode_rel
+				,120[min]
+			)
+		{
+			attribute<Float32> Potential := MakeDefined(1f / (1f + exp(-6.899f + 2.326f * log(value(impedance,float32)))), 1f);
+		}
+		
+		attribute<Float32> Accessibility        (Network/destDomain) := sum(x/Potential * selected_place/Weight[x/OrgZone_rel] , x/DstZone_rel);
+		attribute<Float32> AccessibilityGrid    (Geography/dla_100m) := Accessibility[invert(Network/destDomain/org_rel)];
+		attribute<Float32> PotAccessibilityGrid  (Geography/dla_100m) := potential(AccessibilityGrid, Geography/DistMatrices/pot20Range/potrange/RelWeightSqrt);
+		attribute<Float32> PotPotGrid           (Geography/dla_100m) := potential(Float32(IsDefined(AccessibilityGrid)), Geography/DistMatrices/pot20Range/potrange/RelWeightSqrt);
+		attribute<Float32> NE_AccessibilityGrid (Geography/dla_100m) := PotAccessibilityGrid / PotPotGrid;
+		attribute<Float32> Write_PopulationPotential  (Geography/dla_100m) := rescale(NE_AccessibilityGrid), StorageName = "%LUS_DataDir%/OSM/PopulationPotential.tif";
+	}
+}
