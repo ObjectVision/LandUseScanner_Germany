@@ -192,6 +192,11 @@ container thematic_maps: Using = "Units;Geography;Classifications"
 			attribute<uint4>  CarbonContent   (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_humusgehalt.tif";
 			attribute<uint4>  SoilTypes       (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_leitbodentypen.tif";
 			attribute<uint4>  Floods_combined (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser_combined.tif"; //aktualisiert!
+			
+			attribute<uint4>  Floods100y           (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser100j.tif"; //aktualisiert!
+			attribute<uint4>  Floods_extr          (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser_extrem.tif"; //aktualisiert!
+			attribute<uint4>  UnfragmentedSpace    (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/uzvr_2015_.tif";  //aktualisiert!
+			
 		}
 	
 		attribute<Meter>              Altitude             (domain_grid) := Import/ElevGermany	 <=4000[Meter]	? Import/ElevGermany	: -9999[Meter],   cdf = "Classifications/m_elevation/ClassBreaks" ; 
@@ -199,10 +204,10 @@ container thematic_maps: Using = "Units;Geography;Classifications"
 		attribute<msqr>               SoilQuality          (domain_grid) := Import/SoilsGermany >=   0[msqr]	? Import/SoilsGermany	: -9999[msqr],    cdf = "Classifications/sqr/ClassBreaks";
 		attribute<Soils>              SoilTypes            (domain_grid) := Import/SoilTypes[Soils];
 		attribute<SoilCarbonContent>  CarbonContent        (domain_grid) := Import/CarbonContent[SoilCarbonContent];
-		attribute<Policy>             Floods100y           (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser100j.tif"; //aktualisiert!
-		attribute<Policy>             Floods_extr          (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_hochwasser_extrem.tif"; //aktualisiert!
+		attribute<Policy>             Floods100y           (domain_grid) := Import/Floods100y[Policy];
+		attribute<Policy>             Floods_extr          (domain_grid) := Import/Floods_extr[Policy];
 		attribute<Policy_Levels>      Floods_combined      (domain_grid) := Import/Floods_combined[Policy_Levels];
-		attribute<Policy>             UnfragmentedSpace    (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/uzvr_2015_.tif";  //aktualisiert!
+		attribute<Policy>             UnfragmentedSpace    (domain_grid) := Import/UnfragmentedSpace[Policy];
 		attribute<Landslide>          Landslides           (domain_grid) : StorageName = "%LUS_DataDir%/thematic_maps/nat_landslides.tif"; //aktualisiert!
 		attribute<Jahr>	              AgeForests           (domain_grid) := Import/AgeForestImport	 < 255[Jahr]  ? Import/AgeForestImport	: -9999[Jahr]; //Bundeswaldinventur ist in Arbeit
 		attribute<Jahr>	              AgeForestsUrbanGreen (domain_grid) := iif(present/landuse/germany == value(7, uint8), 50.0[Jahr], AgeForests);

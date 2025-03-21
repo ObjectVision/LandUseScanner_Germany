@@ -6,7 +6,7 @@ container ModelRuns: Using = "Units;classifications"
 			, 'Templates/AllocatePeriod_ggModel_T('+quote(Years/name)+', ''Baseline'')'
 		), Descr = "Stabilitätszenario"
 	{
-		parameter<string> Generate_AllYear := 'Ready', ExplicitSuppliers = "=AsList(Years/name+'/results/LandUse/Model', ';')";
+		parameter<string> Generate_AllYear := 'Ready', ExplicitSuppliers = "=AsList(Years/name+'/results/LandUse/Model', ';')+';'+AsList(Years/name+'/results/LandUse/evaluation/Regional/Gemeinden/AllocatedLanduse', ';')";
 	}
 	
 	container Trend := 

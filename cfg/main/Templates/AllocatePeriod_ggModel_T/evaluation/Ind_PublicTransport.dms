@@ -123,10 +123,7 @@ container Ind_PublicTransport: Descr = "A set of indicators allowing the evaluat
 			attribute <float32> IND_VE (Geography/RegionDomains/Kreise): IsHidden = "True"
 				,	Expr	= "(value(1, float32) * SubIndicators_PublicTransport/Ind_VE01_NewUrbanPT) + (value(0.5, float32) * SubIndicators_PublicTransport/Ind_VE02_NewUrbanPT)";
 			
-			attribute <float32> IND_VE_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr	= "IND_VE - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_PublicTransport/IND_VE";				 
-				
-			attribute <float32> IND_VE_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_PublicTransport/IND_VE + IND_VE_DIFF_BL";
+			attribute <float32> IND_VE_DIFF_BL (Geography/RegionDomains/Kreise) := ='IND_VE - ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_PublicTransport/IND_VE';				 
+			attribute <float32> IND_VE_CH_BL (Geography/RegionDomains/Kreise):= ='ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_PublicTransport/IND_VE + IND_VE_DIFF_BL';
 				
 }

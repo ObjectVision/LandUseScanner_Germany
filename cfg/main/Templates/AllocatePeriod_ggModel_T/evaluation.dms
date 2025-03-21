@@ -175,14 +175,17 @@ container evaluation: Descr = "This container contains several evaluation indica
 			,	Descr = "Total current land use";
 
 			container AllocatedLanduse := 
-				for_each_nedv(
+				for_each_nedvat(
 					  AllocType/Name
 					, 'sum(
 						  UInt32(Endogenous == value('+String(ID(AllocType))+', AllocType)) 
 						, Geography/RegionGrids/Gemeinden
 					  )'
 					, Geography/RegionDomains/Gemeinden
-					, UInt32)
+					, UInt32
+					, '%LocalDataProjDir%/Results/AllocatedLU_perGemeinde_'+Scenario_name+'_'+Year_name+'.csv'
+					, 'gdalwrite.vect'
+				)
 			,	Descr = "Total allocated land use";
 	
 			container ChangeLanduse := 
@@ -2433,26 +2436,26 @@ container evaluation: Descr = "This container contains several evaluation indica
 			container Current: Descr = "urban sprawl indicators for 2009"
 			{
 				unit<uint32> UrbanAreas
-				:	     = "district(uint8(present/landuse/IsUrban))"
+				:	     = district(uint8(present/landuse/IsUrban))
 				,	IsHidden = "True"
 				{
 					attribute<UrbanAreas> Districts (domain_grid);
-					attribute<UrbanAreas> ID_Districts (domain_grid) := "Districts *uint32(present/landuse/IsUrban)";
-					attribute<luHa>       Size      (UrbanAreas) := "Float32(pcount(Districts)) * value(1, luHa)";
-					attribute<luHa> DistrictSize(domain_grid) := "Size[Districts] * Float32(present/landuse/IsUrban)";
+					attribute<UrbanAreas> ID_Districts (domain_grid) := Districts *uint32(present/landuse/IsUrban);
+					attribute<luHa>       Size      (UrbanAreas) := Float32(pcount(Districts)) * value(1, luHa);
+					attribute<luHa> DistrictSize(domain_grid) := Size[Districts] * Float32(present/landuse/IsUrban);
 					attribute<luHa> DistrictSizeGrTh1ha(domain_grid): 
-									 =  "(DistrictSize * float32(DistrictSize < 100000[luHa]))"
-											"- (DistrictSize * float32(DistrictSize == 1[luHa]))";
-					attribute<luHa> NrUrbanAreasEq1ha(domain_grid) :=  "DistrictSize * float32(DistrictSize == 1[luHa])";
+									 =  (DistrictSize * float32(DistrictSize < 100000[luHa]))
+											- (DistrictSize * float32(DistrictSize == 1[luHa]));
+					attribute<luHa> NrUrbanAreasEq1ha(domain_grid) :=  DistrictSize * float32(DistrictSize == 1[luHa]);
 				}
 				parameter <luHa> AvgSizeUrbanAreas
-				:	     = "sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))/sum(float32(UrbanAreas/Size <= 100000[luHa]))";
+				:	     = sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))/sum(float32(UrbanAreas/Size <= 100000[luHa]));
 				
 				parameter <luHa> AvgSizeUrbanAreas1ha
-				:	     = "(sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))-sum(UrbanAreas/Size* float32(UrbanAreas/Size == 1[luHa])))/(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])))";
+				:	     = (sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))-sum(UrbanAreas/Size* float32(UrbanAreas/Size == 1[luHa])))/(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])));
 
 				parameter <float32> NoOfUrbanAreas1ha
-				:	     = "sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa]))";
+				:	     = sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa]));
 								
 // Erläuterung zur AvgSizeUrbanAreas:
 //	Vor dem Bruchstrich:	Die Größe der Patches (basierend auf der Tabelle Size) wird summiert, zunächst würde das für alle Patches gelten, also auch die 25 die nicht urban sind. Es sollen aber nur die Patches berücksichtigt werden, die kleiner als 100tsd ha sind, da das die Patches sind, die urban sind (alle größeren gehören nicht zu urban und sind die Restfläche der 25 Tiles).
@@ -2460,14 +2463,14 @@ container evaluation: Descr = "This container contains several evaluation indica
 //	Nach dem Bruchstrich:	Ergibt die Anzahl der Patches: Wieder Abfrage nach Patches, die kleiner als 100tsd ha sind und Umwandlung der ja/nein Ergebnisse in 0/1. Diese für Konsistenz in Float32 umwandeln und die einsen aufsummieren. (Bei Verwendung von count kommt nichts sinnvolles raus).			
 
 				attribute <luHa> AvgSizeUrbanAreasRegions1 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
-				:	     = "sum(UrbanAreas/DistrictSizeGrTh1ha, Geography/RegionGrids/Kreise)"
-							   "/ sum(float32(Bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)";
+				:	     = sum(UrbanAreas/DistrictSizeGrTh1ha, Geography/RegionGrids/Kreise)
+							   / sum(float32(Bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise);
 
 				attribute <luHa> AvgSizeUrbanAreasRegions2 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
-				:		 = "(sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
-			    			   "- sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))"
-							   "/ (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
-							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))";
+				:		 = (sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)
+			    			   - sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))
+							   / (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)
+							   - sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise));
 
 //Zwei Rechenwege, die zu unterschiedlichen Ergebnissen führen:	 Könnte der Grund darin liegen, wann das partitioning gemacht wird? Dadurch könnten in
 //																 Regionen Patches mit einem ha Größe entstehen, die dann eleminiert werden, wenn die
@@ -2476,87 +2479,86 @@ container evaluation: Descr = "This container contains several evaluation indica
 //																 Für die Durchschnittliche Patchgröße ist Variante 2 sinnvoller
 //																 In der Berechnung für die Anzahl der Patches kommt bei beiden Wegen nichts sinnvolles raua.
 
-				attribute <float32> NrOfUrbanAreasPerRegion1 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
-				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions1";
+				attribute <float32> NrOfUrbanAreasPerRegion1 (Geography/RegionDomains/Kreise)  //bezieht sich auf die Patches > 1ha
+				:	     = sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions1;
 
 				attribute <float32> NrOfUrbanAreasPerRegion2 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
-				,	     = "(sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
-							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))/AvgSizeUrbanAreasRegions2";
+				,	     = (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)
+							   - sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))/AvgSizeUrbanAreasRegions2;
 
 				attribute <float32> NrOfUrbanAreasPerRegion3 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
-				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions2";
+				,	     = sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions2;
 			}
 				
 			container Allocated: Descr = "urban sprawl indicators for allocation year"
 			{
 				unit<uint32> UrbanAreas
-				:	     = "district(uint8(results/landuse/AnderungenVorherigerZeitschritt/IsUrban))"
+				:	     = district(uint8(results/landuse/AnderungenVorherigerZeitschritt/IsUrban))
 				,	IsHidden = "True"
 				{
 					attribute<UrbanAreas> Districts (domain_grid);
-					attribute<UrbanAreas> ID_Districts (domain_grid) := "Districts *uint32(results/landuse/AnderungenVorherigerZeitschritt/IsUrban)";
-					attribute<luHa>       Size      (UrbanAreas) := "Float32(pcount(Districts)) * value(1, luHa)";
-					attribute<luHa> DistrictSize(domain_grid) := "Size[Districts] * Float32(results/landuse/AnderungenVorherigerZeitschritt/IsUrban)"; //Multiplikation notwendig, damit die Rasterkarte nicht in die 25 Tiles aufgeteilt bleibt und somit nicht jedes Tile ein District ohne Urban hat
+					attribute<UrbanAreas> ID_Districts (domain_grid) := Districts *uint32(results/landuse/AnderungenVorherigerZeitschritt/IsUrban);
+					attribute<luHa>       Size      (UrbanAreas) := Float32(pcount(Districts)) * value(1, luHa);
+					attribute<luHa> DistrictSize(domain_grid) := Size[Districts] * Float32(results/landuse/AnderungenVorherigerZeitschritt/IsUrban); //Multiplikation notwendig, damit die Rasterkarte nicht in die 25 Tiles aufgeteilt bleibt und somit nicht jedes Tile ein District ohne Urban hat
 					attribute<luHa> DistrictSizeGrTh1ha(domain_grid):
-									 =  "(DistrictSize * float32(DistrictSize < 100000[luHa]))"
-											"- (DistrictSize * float32(DistrictSize == 1[luHa]))";
-					attribute<luHa> NrUrbanAreasEq1ha(domain_grid) :=  "DistrictSize * float32(DistrictSize == 1[luHa])";
+									 =  (DistrictSize * float32(DistrictSize < 100000[luHa]))
+											- (DistrictSize * float32(DistrictSize == 1[luHa]));
+					attribute<luHa> NrUrbanAreasEq1ha(domain_grid) :=  DistrictSize * float32(DistrictSize == 1[luHa]);
 					
-//					attribute<YesorNo>    IsBuiltup (UrbanAreas) := "modus(results/landuse/AnderungenVorherigerZeitschritt/IsUrban, Districts)"; //verstehe den Zweck nicht, stamt aus LUS-Demo mit Contiuous Algorthismus
+//					attribute<YesorNo>    IsBuiltup (UrbanAreas) := modus(results/landuse/AnderungenVorherigerZeitschritt/IsUrban, Districts); //verstehe den Zweck nicht, stamt aus LUS-Demo mit Contiuous Algorthismus
 				}
-				parameter <luHa> AvgSizeUrbanAreas
-				:	     = "sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))/sum(float32(UrbanAreas/Size <= 100000[luHa]))";
+				parameter <luHa> AvgSizeUrbanAreas:= sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))/sum(float32(UrbanAreas/Size <= 100000[luHa]));
 				
 				parameter <luHa> AvgSizeUrbanAreas1ha
-				:	     = "(sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))-sum(UrbanAreas/Size* float32(UrbanAreas/Size == 1[luHa])))/(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])))";
+				:	     = (sum(UrbanAreas/Size* float32(UrbanAreas/Size <= 100000[luHa]))-sum(UrbanAreas/Size* float32(UrbanAreas/Size == 1[luHa])))/(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])));
 
 				parameter <float32> NoOfUrbanAreas1ha
-				:	     = "(sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])))";
+				:	     = (sum(float32(UrbanAreas/Size <= 100000[luHa]))-sum(float32(UrbanAreas/Size == 1[luHa])));
 
 				attribute <luHa> AvgSizeUrbanAreasRegions1 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
-				:	     = "sum(UrbanAreas/DistrictSizeGrTh1ha, Geography/RegionGrids/Kreise)"
-							   "/ sum(float32(Bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)";
+				:	     = sum(UrbanAreas/DistrictSizeGrTh1ha, Geography/RegionGrids/Kreise)
+							   / sum(float32(Bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise);
 
 				attribute <luHa> AvgSizeUrbanAreasRegions2 (Geography/RegionDomains/Kreise) //bezieht sich auf die Patches > 1ha
-				:		 = "(sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
-			    			   "- sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))"
-							   "/ (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
-							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))";
+				:		 = (sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)
+			    			   - sum(UrbanAreas/DistrictSize * float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))
+							   / (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)
+							   - sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise));
 
 				attribute <float32> NrOfUrbanAreasPerRegion1 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
-				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions1";
+				,	     = sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions1;
 
 				attribute <float32> NrOfUrbanAreasPerRegion2 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
-				,	     = "(sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)"
-							   "- sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))/AvgSizeUrbanAreasRegions2";
+				,	     = (sum(Float32(UrbanAreas/DistrictSize < 100000[luHa]), Geography/RegionGrids/Kreise)
+							   - sum(Float32(UrbanAreas/DistrictSize == 1[luHa]), Geography/RegionGrids/Kreise))/AvgSizeUrbanAreasRegions2;
 
 				attribute <float32> NrOfUrbanAreasPerRegion3 (Geography/RegionDomains/Kreise): IsHidden = "True"  //bezieht sich auf die Patches > 1ha
-				,	     = "sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions2";
+				,	     = sum(float32(bool(UrbanAreas/DistrictSizeGrTh1ha)), Geography/RegionGrids/Kreise)/AvgSizeUrbanAreasRegions2;
 				// Erläuterung zu NrOfUrbanAreasPerRegion: Das ist nur eine Annäherung, indem ich die Anzahl Zellen die Urban in einer Region sind gezählt habe und diese durch die Durchschnittliche Patchgröße der Region geteilt habe
 			}
 				
 			container Change: Descr = "change of urban sprawl indicators since 2009"
 			{
 				parameter <float32> ChangeAvgPatchSize
-				:			 =	"((Allocated/AvgSizeUrbanAreas1ha / Current/AvgSizeUrbanAreas1ha)- value(1, float32))* value(100, float32)";
+				:			 =	((Allocated/AvgSizeUrbanAreas1ha / Current/AvgSizeUrbanAreas1ha)- value(1, float32))* value(100, float32);
 				
 				parameter <float32> ChangeNrOfUrbanAreas
-				:			 =	"((Allocated/NoOfUrbanAreas1ha / Current/NoOfUrbanAreas1ha)- value(1, float32))* value(100, float32)";
+				:			 =	((Allocated/NoOfUrbanAreas1ha / Current/NoOfUrbanAreas1ha)- value(1, float32))* value(100, float32);
 
 				attribute <float32> ChangeAvgPatchSizePerRegion1 (Geography/RegionDomains/Kreise)
-				:			 =	"((Allocated/AvgSizeUrbanAreasRegions1 / Current/AvgSizeUrbanAreasRegions1)- value(1, float32))* value(100, float32)";
+				:			 =	((Allocated/AvgSizeUrbanAreasRegions1 / Current/AvgSizeUrbanAreasRegions1)- value(1, float32))* value(100, float32);
 
 				attribute <float32> ChangeAvgPatchSizePerRegion2 (Geography/RegionDomains/Kreise)
-				:			 =	"((Allocated/AvgSizeUrbanAreasRegions2 / Current/AvgSizeUrbanAreasRegions2)- value(1, float32))* value(100, float32)";
+				:			 =	((Allocated/AvgSizeUrbanAreasRegions2 / Current/AvgSizeUrbanAreasRegions2)- value(1, float32))* value(100, float32);
 				
 				attribute <float32> ChangeNrOfUrbanAreasPerRegion1 (Geography/RegionDomains/Kreise)
-				:			 =	"((Allocated/NrOfUrbanAreasPerRegion1 / Current/NrOfUrbanAreasPerRegion1)- value(1, float32))* value(100, float32)";
+				:			 =	((Allocated/NrOfUrbanAreasPerRegion1 / Current/NrOfUrbanAreasPerRegion1)- value(1, float32))* value(100, float32);
 				
 				attribute <float32> ChangeNrOfUrbanAreasPerRegion2 (Geography/RegionDomains/Kreise)
-				:			 =	"((Allocated/NrOfUrbanAreasPerRegion2 / Current/NrOfUrbanAreasPerRegion2)- value(1, float32))* value(100, float32)";
+				:			 =	((Allocated/NrOfUrbanAreasPerRegion2 / Current/NrOfUrbanAreasPerRegion2)- value(1, float32))* value(100, float32);
 				
 				attribute <float32> ChangeNrOfUrbanAreasPerRegion3 (Geography/RegionDomains/Kreise)
-				:			 =	"((Allocated/NrOfUrbanAreasPerRegion3 / Current/NrOfUrbanAreasPerRegion3)- value(1, float32))* value(100, float32)";
+				:			 =	((Allocated/NrOfUrbanAreasPerRegion3 / Current/NrOfUrbanAreasPerRegion3)- value(1, float32))* value(100, float32);
 			}		
 			
 			
@@ -2576,16 +2578,16 @@ container evaluation: Descr = "This container contains several evaluation indica
 	#include <Ind_CarbonSequestrationEF.dms>
 	
 	
-	unit<WPoint> xTabData := Range(WPoint, Point(UInt16(0),UInt16(0)), Point(UInt16(#Classifications/LU/ModelType), UInt16(#Classifications/LU/ModelType)))
+	unit<WPoint> xTabData := Range(WPoint, point_xy(UInt16(0),UInt16(0)), point_xy(UInt16(#Classifications/LU/ModelType), UInt16(#Classifications/LU/ModelType)))
 	{
-		attribute<UInt32> Count := PCount(Point(UInt16(Prev_landuse), UInt16(results/LandUse/Model), xTabData));
-		attribute<UInt32> CountSeit2022 := PCount(Point(UInt16(Present/landuse/germany), UInt16(results/LandUse/Model), xTabData));
+		attribute<UInt32> Count := PCount(point_xy(UInt16(Prev_landuse), UInt16(results/LandUse/Model), xTabData));
+		attribute<UInt32> CountSeit2022 := PCount(point_xy(UInt16(Present/landuse/germany), UInt16(results/LandUse/Model), xTabData));
 	}
 	container xTab :=  
 		for_each_nedv(
 			Classifications/LU/ModelType/Name, 
 			'xTabData/Count[
-				Point(
+				point_xy(
 					UInt16(ID(Classifications/LU/ModelType)), 
 					const('+String(ID(Classifications/LU/ModelType))+', Classifications/LU/ModelType, UInt16), 
 					xTabData
@@ -2598,7 +2600,7 @@ container evaluation: Descr = "This container contains several evaluation indica
 		for_each_nedv(
 			Classifications/LU/ModelType/Name, 
 			'xTabData/CountSeit2022[
-				Point(
+				point_xy(
 					UInt16(ID(Classifications/LU/ModelType)), 
 					const('+String(ID(Classifications/LU/ModelType))+', Classifications/LU/ModelType, UInt16), 
 					xTabData

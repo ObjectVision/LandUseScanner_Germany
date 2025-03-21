@@ -81,33 +81,23 @@ container Ind_CarbonSequestration: Descr = "A set of indicators allowing the eva
 							iif((float32((Preparation/CS03_UrbanOnCarbonContent / Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32)) > value(  0, float32),
 							float32((Preparation/CS03_UrbanOnCarbonContent / Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32), value(0, float32)))";
 							
-		attribute <float32> Ind_CS01_UrbanOnPasture_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-			,	Expr	= "	iif((float32((Preparation/CS01_UrbanOnPasture / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnPasture)) * value(100, float32)) > value(200, float32), value(200, float32),
-							iif((float32((Preparation/CS01_UrbanOnPasture / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnPasture)) * value(100, float32)) > value(  0, float32),
-							float32((Preparation/CS01_UrbanOnPasture / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnPasture)) * value(100, float32), value(0, float32)))";
+		attribute <float32> Ind_CS01_UrbanOnPasture_BL (Geography/RegionDomains/Kreise):= ='iif((float32((Preparation/CS01_UrbanOnPasture / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnPasture)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/CS01_UrbanOnPasture / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnPasture)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/CS01_UrbanOnPasture / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnPasture)) * value(100, float32), value(0, float32)))';
 
-		attribute <float32> Ind_CS02_UrbanOnForest_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-			,	Expr	= "	iif((float32((Preparation/CS02_UrbanOnForest / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnForest)) * value(100, float32)) > value(200, float32), value(200, float32),
-							iif((float32((Preparation/CS02_UrbanOnForest / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnForest)) * value(100, float32)) > value(  0, float32),
-							float32((Preparation/CS02_UrbanOnForest / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnForest)) * value(100, float32), value(0, float32)))";
+		attribute <float32> Ind_CS02_UrbanOnForest_BL (Geography/RegionDomains/Kreise):= ='iif((float32((Preparation/CS02_UrbanOnForest / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnForest)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/CS02_UrbanOnForest / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnForest)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/CS02_UrbanOnForest / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/ShareGermanyZuUrbanOnForest)) * value(100, float32), value(0, float32)))';
 		
-		attribute <float32> Ind_CS03_UrbanOnCarbonContent_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-			,	Expr	= "	iif((float32((Preparation/CS03_UrbanOnCarbonContent / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32)) > value(200, float32), value(200, float32),
-							iif((float32((Preparation/CS03_UrbanOnCarbonContent / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32)) > value(  0, float32),
-							float32((Preparation/CS03_UrbanOnCarbonContent / ModelRuns/Baseline/Yr2030/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32), value(0, float32)))";
+		attribute <float32> Ind_CS03_UrbanOnCarbonContent_BL (Geography/RegionDomains/Kreise):= ='iif((float32((Preparation/CS03_UrbanOnCarbonContent / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32)) > value(200, float32), value(200, float32),
+							iif((float32((Preparation/CS03_UrbanOnCarbonContent / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32)) > value(  0, float32),
+							float32((Preparation/CS03_UrbanOnCarbonContent / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/landuse/evaluation/Ind_CarbonSequestration/Preparation/GermanyZuUrbanCarbonContent)) * value(100, float32), value(0, float32)))';
 												
 	}
 	
-	attribute <float32> IND_CS (Geography/RegionDomains/Kreise): IsHidden = "True"
-			,	Expr	= "(value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS01_UrbanOnPasture) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS02_UrbanOnForest) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS03_UrbanOnCarbonContent)";
-			
-	attribute <float32> IND_CS_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-			,	Expr	= "(value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS01_UrbanOnPasture_BL) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS02_UrbanOnForest_BL) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS03_UrbanOnCarbonContent_BL)";
-			
-	attribute <float32> IND_CS_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr 	= "IND_CS_BL - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_CarbonSequestration/IND_CS";
-				
-	attribute <float32> IND_CS_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_CarbonSequestration/IND_CS + IND_CS_DIFF_BL";
+	attribute <float32> IND_CS (Geography/RegionDomains/Kreise):= ='(value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS01_UrbanOnPasture) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS02_UrbanOnForest) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS03_UrbanOnCarbonContent)';
+	attribute <float32> IND_CS_BL (Geography/RegionDomains/Kreise):= ='(value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS01_UrbanOnPasture_BL) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS02_UrbanOnForest_BL) + (value(0.3333, float32) * SubIndicators_CarbonSequestration/Ind_CS03_UrbanOnCarbonContent_BL)';
+	attribute <float32> IND_CS_DIFF_BL (Geography/RegionDomains/Kreise):= ='IND_CS_BL - ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_CarbonSequestration/IND_CS';
+	attribute <float32> IND_CS_CH_BL (Geography/RegionDomains/Kreise):= ='ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_CarbonSequestration/IND_CS + IND_CS_DIFF_BL';
 			
 }

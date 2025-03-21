@@ -2,30 +2,36 @@ container restriction_maps : using = "units"
 {
 	container Import
 	{
-		attribute<db> bahnlaermGermany(domain_grid):
+		attribute<db> bahnlaermGermany (domain_grid):
 				Label = "Noise level in db",
 				Descr = "Noise resulting from railroad traffic",
 				Source = "Eisenbahnbundesamt",
 				StorageName = "%LUS_DataDir%/restriction/res_laerm_schiene.tif";
 
-		attribute<db> autolaermGermany(domain_grid):
+		attribute<db> autolaermGermany (domain_grid):
 				Label = "Noise level in db",
 				Descr = "Noise resulting from road traffic",
 				Source = "Eisenbahnbundesamt",
 				StorageName = "%LUS_DataDir%/restriction/res_laerm_strasse.tif";
 
-		attribute<db> fluglaermGermany(domain_grid):
+		attribute<db> fluglaermGermany (domain_grid):
 				Label = "Noise level in db",
 				Descr = "Noise resulting from air traffic",
 				Source = "Eisenbahnbundesamt",
 				StorageName = "%LUS_DataDir%/restriction/res_laerm_luft.tif";
+				
+		attribute<uint8> freileitungen (domain_grid) : StorageName = "%LUS_DataDir%/restriction/res_freileitungen.tif", StorageReadOnly = "true";
+		attribute<uint8> friedhoefe    (domain_grid) : StorageName = "%LUS_DataDir%/restriction/res_friedhoefe.tif", StorageReadOnly = "true";
+		attribute<uint8> rieselfelder  (domain_grid) : StorageName = "%LUS_DataDir%/restriction/res_rieselfelder.tif", StorageReadOnly = "true";
+		attribute<uint8> kraftwerke    (domain_grid) : StorageName = "%LUS_DataDir%/restriction/res_abstand_kraftwerke.tif", StorageReadOnly = "true";
+		attribute<uint8> airport       (domain_grid) : StorageName = "%LUS_DataDir%/restriction/res_abstand_flughaefen.tif", StorageReadOnly = "true";
 	}
 	
-	attribute<Classifications/Restriction> freileitungen (domain_grid): StorageName = "%LUS_DataDir%/restriction/res_freileitungen.tif"; //aktualisiert!
-	attribute<Classifications/Restriction> friedhoefe (domain_grid): StorageName = "%LUS_DataDir%/restriction/res_friedhoefe.tif"; //aktualisiert!
-	attribute<Classifications/Restriction> rieselfelder (domain_grid): StorageName = "%LUS_DataDir%/restriction/res_rieselfelder.tif"; //aktualisiert!
-	attribute<Classifications/Restriction> kraftwerke (domain_grid): StorageName = "%LUS_DataDir%/restriction/res_abstand_kraftwerke.tif"; //aktualisiert!
-	attribute<Classifications/Restriction> airport (domain_grid): StorageName = "%LUS_DataDir%/restriction/res_abstand_flughaefen.tif"; //aktualisiert!
+	attribute<Classifications/Restriction> freileitungen (domain_grid) := Import/freileitungen[Classifications/Restriction];
+	attribute<Classifications/Restriction> friedhoefe    (domain_grid) := Import/friedhoefe[Classifications/Restriction];
+	attribute<Classifications/Restriction> rieselfelder  (domain_grid) := Import/rieselfelder[Classifications/Restriction];
+	attribute<Classifications/Restriction> kraftwerke    (domain_grid) := Import/kraftwerke[Classifications/Restriction];
+	attribute<Classifications/Restriction> airport       (domain_grid) := Import/airport[Classifications/Restriction];
 	
 	attribute<db> bahnlaerm (domain_grid) := Import/bahnlaermGermany >=   0[db]? Import/bahnlaermGermany	: -9999[db], cdf = "Classifications/noise/ClassBreaks";
 	attribute<db> autolaerm (domain_grid) := Import/autolaermGermany >=   0[db]? Import/autolaermGermany	: -9999[db], cdf = "Classifications/noise/ClassBreaks";

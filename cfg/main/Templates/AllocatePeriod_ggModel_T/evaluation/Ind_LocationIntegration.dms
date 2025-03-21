@@ -21,11 +21,11 @@ container Ind_LocationIntegration: Descr = "A set of indicators allowing the eva
 		
 		container Kernel
 			{
-				unit<spoint> pot100mRange: Range = "[{-1, -1}, {2, 2})"
-					{
-						attribute<uint32> distMatr: expr = "dist2(point(int16(0), int16(0), pot100mRange), uint32)";
-						attribute<float32> AbsWeight: expr = "float32(iif(distMatr == uint32(1), value(1, uint32), value(0, uint32)))";
-					}
+				unit<spoint> pot100mRange:= range(spoint, point_xy(-1s, -1s), point_xy(2s,2s))
+				{
+					attribute<uint32> distMatr: expr = "dist2(point_xy(int16(0), int16(0), pot100mRange), uint32)";
+					attribute<float32> AbsWeight: expr = "float32(iif(distMatr == uint32(1), value(1, uint32), value(0, uint32)))";
+				}
 			}
 					
 		attribute<float32> IsUrbanPotential100m  (domain_grid): Expr = "potential(float32(lookup(results/landuse/model, Classifications/LU/ModelType/IsUrban)),  Kernel/pot100mRange/AbsWeight)";
@@ -54,10 +54,8 @@ container Ind_LocationIntegration: Descr = "A set of indicators allowing the eva
 	attribute <float32> IND_SI (Geography/RegionDomains/Kreise): IsHidden = "True"
 			,	Expr	= "SubIndicators_LocationIntegration/Ind_SI01_LocationIntegrationRescale";
 			
-	attribute <float32> IND_SI_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr 	= "IND_SI - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LocationIntegration/IND_SI";
+	attribute <float32> IND_SI_DIFF_BL (Geography/RegionDomains/Kreise):= ='IND_SI - ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_LocationIntegration/IND_SI';
 				
-	attribute <float32> IND_SI_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_LocationIntegration/IND_SI + IND_SI_DIFF_BL";
+	attribute <float32> IND_SI_CH_BL (Geography/RegionDomains/Kreise):= ='ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_LocationIntegration/IND_SI + IND_SI_DIFF_BL';
 		
 }

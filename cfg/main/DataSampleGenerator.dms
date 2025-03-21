@@ -55,9 +55,9 @@ container DataSampleGenerator
 	container Generator
 	{
 		unit<spoint> domain_grid: Expr = "geography/dla_100m";
-		unit<UInt32> domain: Expr= "Subset(Classifications/LU/ModelType/IsAllocatable[Present/landuse/germany])", DialogType = "Map", DialogData = "BaseGrid"
+		unit<UInt32> domain:= select_with_org_rel(Classifications/LU/ModelType/IsAllocatable[Present/landuse/germany]), DialogType = "Map", DialogData = "BaseGrid"
 		{
-			attribute<domain_grid> grid_rel: Expr = "nr_OrgEntity";
+			attribute<domain_grid> grid_rel := org_rel;
 			attribute<.> BaseGrid(domain_grid): Expr = "invert(grid_rel)";
 		}
 		
@@ -69,10 +69,10 @@ container DataSampleGenerator
 		//attribute<bool> sampleDrawer1(domain): Expr = "rnd_permutation(1, domain) < #domain / 500"; // select 70000 cells, which is approx. (0.2%) or 1 out of 500 allocatable land units.
 		attribute<bool> sampleDrawer1(domain): Expr = "rnd_permutation(1, domain) < #domain / 50"; // select 716.000 cells, which is approx. (2%) or 1 out of 50 allocatable land units.
 		attribute<bool> sampleDrawer2(domain): Expr = "rnd_uniform    (1, domain, range(Float64, 0.0, 1.0)) * Float64(pcount(OrgLanduse)[OrgLanduse]) < 200.0"; // select approx. 200 samples per LUT if available as a kind of positive discrimination to have a minimum representation for each land use type.
-		unit<UInt32> sampleSet: Expr = "Subset(sampleDrawer1 || sampleDrawer2)", 
+		unit<UInt32> sampleSet:= select_with_org_rel(sampleDrawer1 || sampleDrawer2), 
 			DialogType = "Map", DialogData = "GeoRef"
 		{
-			attribute<domain_grid> GeoRef: Expr = "domain/grid_rel[nr_OrgEntity]";
+			attribute<domain_grid> GeoRef: Expr = "domain/grid_rel[org_rel]";
 		}
 		
 		container FactorDbfFile: 
@@ -85,7 +85,7 @@ container DataSampleGenerator
 					"Classifications, FactorSet/ValuesUnit"
 				")"
 		{
-			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/nr_OrgEntity]";
+			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/org_rel]";
 		}
 		
 		container PotentialData: Expr = 
@@ -131,24 +131,24 @@ container DataSampleGenerator
 			Expr = 
 				"for_each_nedv("
 					"PotentialSet/ShortName, "
-					"'PotentialData/'+PotentialSet/Name+'[sampleSet/nr_OrgEntity]', "
+					"'PotentialData/'+PotentialSet/Name+'[sampleSet/org_rel]', "
 					"sampleSet, "
 					"Float32"
 				")"
 		{
-			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/nr_OrgEntity]";
+			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/org_rel]";
 		}
 		container EnrichmentDbfFile: 
 			StorageName = "%LocalDataDir%/d100/Samples/NE.dbf",  // Neighbourhood Enrichment Sample, as described in the Clue model descr.
 			Expr = 
 				"for_each_nedv("
 					"PotentialSet/ShortName, "
-					"'EnrichData/'+PotentialSet/Name+'[sampleSet/nr_OrgEntity]', "
+					"'EnrichData/'+PotentialSet/Name+'[sampleSet/org_rel]', "
 					"sampleSet, "
 					"Float32"
 				")"
 		{
-			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/nr_OrgEntity]";
+			attribute<Classifications/LU/ModelType> OrgLU(sampleSet): Expr = "OrgLanduse[sampleSet/org_rel]";
 		}
 	}
 	parameter<String> GenerateAll: Expr = "'Ready'", ExplicitSuppliers = "Generator/FactorDbfFile;Generator/PotentialDbfFile;Generator/EnrichmentDbfFile";

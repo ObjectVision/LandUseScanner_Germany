@@ -167,10 +167,7 @@ container Ind_CarbonSequestrationEF: Descr = "A set of indicators allowing the e
 			,	Expr	= "(value(0.5, float32) * SubIndicator_CarbonSequestration/Ind_CS02_CarbonSequestrationUrban) + (value(0.5, float32) * SubIndicator_CarbonSequestration/Ind_CS04_DiffCarbonSequestrationUrbanChange)";
 				
 		
-	attribute <float32> IND_CS_DIFF_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-			,	Expr 	= "IND_CS - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_CarbonSequestrationEF/IND_CS";
-				
-	attribute <float32> IND_CS_CH_BL (Geography/RegionDomains/Kreise): IsHidden = "True"
-			,	Expr 	= "ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_CarbonSequestrationEF/IND_CS + IND_CS_DIFF_BL";
+	attribute <float32> IND_CS_DIFF_BL (Geography/RegionDomains/Kreise):= ='IND_CS - ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_CarbonSequestrationEF/IND_CS';
+	attribute <float32> IND_CS_CH_BL (Geography/RegionDomains/Kreise):= ='ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_CarbonSequestrationEF/IND_CS + IND_CS_DIFF_BL';
 			
 }

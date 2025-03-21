@@ -145,7 +145,7 @@ Template AllocatePeriod_ggModel_T : using = "units;classifications;classificatio
 		container Landuse
 		{
 			attribute<AllocType>      Endogenous        (domain_grid) := casedata/discrete_alloc/landuse_grid;
-			attribute<ModelType>      Model             (domain_grid) := MakeDefined(AllocType/org_rel[Endogenous], ExogenousLand), StorageName = "='%LocalDataProjDir%/Results/LandUse_'+Scenario_name+'_'+Year_name+'.tif'";
+			attribute<ModelType>      Model             (domain_grid) := MakeDefined(AllocType/org_rel[Endogenous], ExogenousLand), StorageName = "='%LocalDataProjDir%/Results/LandUse_'+Scenario_name+'_'+Year_name+'.tif'", StorageType = "gdalwrite.grid";
 			
 			attribute<LU/LU_Urban>    LU_Urban          (domain_grid) := lookup(Model, LU/ModelType/LU_Urban_Rel);
 			attribute<YesorNo>        IsUrban           (domain_grid) := lookup(Model, LU/ModelType/IsUrban) ; 

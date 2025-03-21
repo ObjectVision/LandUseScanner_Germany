@@ -211,25 +211,21 @@ container Ind_NatureProtection: Descr = "A set of indicators allowing the evalua
 									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow)) > value(0, float32),
 									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Actual/ShareActualUrbanAreasOnNPLow * value(100, float32)) / SubIndicators_NatureProtection/NatureProtection_Layers/Current/ShareCurrentUrbanAreasOnNPLow), value(100, float32)))";
 				
-				attribute <float32> Ind_HW05_NewUrbanOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
-					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
-									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany)) > value(0, float32),
-									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany), value(0, float32)))";
+				attribute <float32> Ind_HW05_NewUrbanOnNPHigh (Geography/RegionDomains/Kreise):= ='iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPHigh_Germany), value(0, float32)))';
 				
-				attribute <float32> Ind_HW06_NewUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"
-					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
-									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany)) > value(0, float32),
-									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany), value(0, float32)))";
+				attribute <float32> Ind_HW06_NewUrbanOnNPLow (Geography/RegionDomains/Kreise):= ='iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/NewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/NewUrbanAreasOnNPLow_Germany), value(0, float32)))';
 									 
-				attribute <float32> Ind_HW07_ShareNewUrbanOnNPHigh (Geography/RegionDomains/Kreise): IsHidden = "True"
-					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
-									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany)) > value(0, float32),
-									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany), value(0, float32)))";
+				attribute <float32> Ind_HW07_ShareNewUrbanOnNPHigh (Geography/RegionDomains/Kreise):= ='iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPHigh * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPHigh_Germany), value(0, float32)))';
 				
-				attribute <float32> Ind_HW08_ShareNewUrbanOnNPLow (Geography/RegionDomains/Kreise): IsHidden = "True"	
-					,	Expr	=	"iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
-									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany)) > value(0, float32),
-									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany), value(0, float32)))";
+				attribute <float32> Ind_HW08_ShareNewUrbanOnNPLow (Geography/RegionDomains/Kreise):= ='iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany)) > value(200, float32), value(200, float32),
+									 iif((float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany)) > value(0, float32),
+									 float32((SubIndicators_NatureProtection/NatureProtection_Layers/Changes/ShareNewUrbanAreasOnNPLow * value(100, float32)) / ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/Preparation/NatureProtectionLayers/Changes/ShareNewUrbanAreasOnNPLow_Germany), value(0, float32)))';
 									 
 				
 				
@@ -249,11 +245,9 @@ container Ind_NatureProtection: Descr = "A set of indicators allowing the evalua
 			attribute <float32> NP_Combi (Geography/RegionDomains/Kreise): IsHidden = "True"
 				,	Expr	= "(value(0.5, float32) * NP_R) + (value(0.5, float32) * NP_New)";
 				
-			attribute <float32> NP_DIFF_BASELINE_NEW (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr 	= "NP_New - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/NP_New";
+			attribute <float32> NP_DIFF_BASELINE_NEW (Geography/RegionDomains/Kreise):= ='NP_New - ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/NP_New';
 				
-			attribute <float32> NP_DIFF_BASELINE_COMBI (Geography/RegionDomains/Kreise): IsHidden = "True"
-				,	Expr 	= "NP_Combi - ModelRuns/Baseline/Yr2030/results/LandUse/evaluation/Ind_NatureProtection/NP_Combi";
+			attribute <float32> NP_DIFF_BASELINE_COMBI (Geography/RegionDomains/Kreise):= ='NP_Combi - ModelRuns/'+Scenario_name+'/'+PrevYear_name+'/results/LandUse/evaluation/Ind_NatureProtection/NP_Combi';
 				
 	
 
