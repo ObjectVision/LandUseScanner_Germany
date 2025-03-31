@@ -3,5 +3,6 @@ container ConfigSettings
 	container Overridable
 	{
 		parameter<String> LUS_DataDir := '%sourceDataDir%/LUS_Germany';
+		// parameter<String> LUS_DataDir := 'D:/OneDrive/Objectvision/Object Vision - SourceData/LUS_Germany';
 	}
 }

@@ -129,17 +129,16 @@ container Geography: Using = "Units"
 		container Gemeinden //auf den Stand 2020 aktualisiert
 		{
 			unit<uint16> vat_key;
-			attribute<vat_key> TiffData(dla_100m): StorageName = "%LUS_DataDir%/regions/regional_divisions_gemeinden.tif";
-			
-			attribute<vat>     GridData(dla_100m) := rlookup(TiffData, vat/value);
+			attribute<vat_key> TiffData (dla_100m): StorageName = "%LUS_DataDir%/regions/regional_divisions_gemeinden.tif";
+			attribute<vat>     GridData (dla_100m) := rlookup(TiffData, vat/value);
 			
 			unit<uint16> vat : StorageName = "%LUS_DataDir%/regions/regional_divisions_gemeinden.tif.vat.dbf", StorageReadOnly = "True", KeepData = "True", DialogType = "Map", DialogData = "GridData"
-				{
-					attribute<vat_key> value;
-					attribute<uint32> count;
-					attribute<uint32> ags_int  := uint32(ags), disablestorage = "TRUE";
-				}
-		}	
+			{
+				attribute<vat_key> value;
+				attribute<uint32> count;
+				attribute<uint32> ags_int  := uint32(ags), disablestorage = "TRUE";
+			}
+		}
 	}
 	
 	// re-grouping of specific data of Regios to support references from the allocation script.

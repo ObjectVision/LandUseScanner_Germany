@@ -175,7 +175,7 @@ container evaluation: Descr = "This container contains several evaluation indica
 			,	Descr = "Total current land use";
 
 			container AllocatedLanduse := 
-				for_each_nedvat(
+				for_each_nedv(
 					  AllocType/Name
 					, 'sum(
 						  UInt32(Endogenous == value('+String(ID(AllocType))+', AllocType)) 
@@ -183,10 +183,10 @@ container evaluation: Descr = "This container contains several evaluation indica
 					  )'
 					, Geography/RegionDomains/Gemeinden
 					, UInt32
-					, '%LocalDataProjDir%/Results/AllocatedLU_perGemeinde_'+Scenario_name+'_'+Year_name+'.csv'
-					, 'gdalwrite.vect'
-				)
-			,	Descr = "Total allocated land use";
+				), Descr = "Total allocated land use", StorageName = "='%LocalDataProjDir%/Results/AllocatedLU_perGemeinde_'+Scenario_name+'_'+Year_name+'.csv'", StorageType = "gdalwrite.vect"
+			{
+				attribute<string>  Gemeinde_code (Geography/RegionDomains/Gemeinden) := string(Geography/RegionDomains/Gemeinden/value);
+			}
 	
 			container ChangeLanduse := 
 				for_each_nedv(
