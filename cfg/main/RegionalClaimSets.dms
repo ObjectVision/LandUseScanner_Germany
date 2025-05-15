@@ -1,4 +1,4 @@
-container RegionalClaimSets: Using = "Units;Classifications;Classifications/LU"
+container RegionalClaimSets_Baseline : Using = "Units;Classifications;Classifications/LU"
 {
 //	-------------TableChopper for processing claim tables -------------------------
 

@@ -16,7 +16,7 @@ Template AllocatePeriod_ggModel_T : using = "units;classifications;classificatio
 	
 	attribute<ModelType> Prev_Landuse    (domain_grid) := = PrevYear_name == 'Start' ? 'Present/landuse/germany' : 'PrevYear/Results/landuse/Model';
 	attribute<ModelType> ExogenousLand   (domain_grid) := ='BaseData/ExogenousLandUse/'+Year_name;
-	container            Claims                        := BaseData/RegionalClaimSets/RegionalClaimSets/Claims, Descr = "Crj: Claims per region per lu-type";
+	container            Claims                        := ='BaseData/RegionalClaimSets/RegionalClaimSets_'+Scenario_name+'/Claims', Descr = "Crj: Claims per region per lu-type";
 	attribute<float32>   AgeLandUse      (domain_grid) := = PrevYear_name == 'Start' ? 'Present/thematic_maps/naturelandscape/ageforestsurbangreen' : 'PrevYear/Results/landuse/AnderungenVorherigerZeitschritt/Age';
 
 	parameter<Jahr>      StartYear                     := rjoin(Year_name, Years/name, Years/StartYear)[Jahr];
